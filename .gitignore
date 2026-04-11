@@ -1,0 +1,15 @@
+.DS_Store
+.serena/
+.claude/settings.local.json
+docs/superpowers/
+*.zip
+
+# Local symlinks
+notes
+
+# Agent team
+team/team.db
+team/inbox/*
+team/outbox/*
+!team/inbox/.gitkeep
+!team/outbox/.gitkeep
