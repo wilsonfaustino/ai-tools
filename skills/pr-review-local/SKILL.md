@@ -126,3 +126,62 @@ If any subagent errors (Task tool failure, timeout, context overflow), capture t
 7. **Never** modify files, never call `gh api`, never post comments. Return findings as markdown text only.
 
 ---
+
+## Subagent 1: Security
+
+Focus on the annotated PR diff for Security concerns listed below. <!-- EXAMPLE: if your repo has security documentation, also load it here, e.g. "Load docs/security-patterns.md and extract rules marked with the failure mark" -->
+
+Review the PR diff for any violations of those security patterns: hardcoded secrets, missing auth guards, PII in logs, missing webhook signature validation, overly permissive CORS, clients exported across module boundaries, sensitive fields in response DTOs, and raw query concatenation.
+
+**Second pass:** Re-read the full diff from top to bottom. List every file or hunk you did not comment on. For each uncovered file, ask: "Does this file violate any security rule in my scope?" Only skip a file when you can explicitly state why it is clean.
+
+**Return format:** One markdown block per finding, cited with the `[L<n>]` annotation from the diff:
+
+```
+- `path/file.ts:L42` [Short title]
+  [What the issue is and why it matters]
+  Recommendation: [Specific fix]
+```
+
+Group your findings under a `### Security` heading. Include at least one positive highlight under `### Highlights` before your findings. If no findings, print `### Security` + `- No findings.` and still include a `### Highlights` line.
+
+---
+
+## Subagent 2: Regression and Hallucination Detection
+
+Review the annotated PR diff for code changes that are unrelated to the branch's stated purpose, or that show signs of AI-generated artifacts. Look for: deleted code unrelated to the change (Critical), phantom imports referencing non-existent symbols (Critical), method calls with wrong signatures (Critical), `TODO` left in production code, type assertions hiding compiler errors, duplicate logic that already exists in the module, weakened error handling or validation, silently swallowed queue job errors, weakened test assertions, and dead code that is never called.
+
+**Second pass:** Re-read the full diff from top to bottom. List every file or hunk you did not comment on. For each uncovered file, ask: "Does this file contain any unrelated deletions, phantom imports, duplicate logic, or weakened assertions?" Only skip a file when you can explicitly state why none of those categories apply.
+
+**Return format:**
+
+```
+- `path/file.ts:L42` [Short title]
+  Type: [unrelated-deletion | phantom-import | hallucination | duplicate | regression | dead-code]
+  [Specific description with quoted evidence from the diff]
+  Recommendation: [Exact fix]
+```
+
+Group your findings under a `### Regression` heading (use Critical / Warning / Suggestion severity labels inside each finding's title). Include at least one positive highlight under `### Highlights`. If no findings, print `### Regression` + `- No findings.` and still include a `### Highlights` line.
+
+---
+
+## Subagent 3: Performance
+
+Focus on the annotated PR diff for Performance concerns listed below. <!-- EXAMPLE: if your repo has performance or repository pattern docs, also load them here, e.g. "Load docs/coding-patterns.md (Repository Pattern section)" -->
+
+Only flag issues **clearly visible in the diff**, no speculation. Look for: N+1 query patterns (repository lookup inside a loop), unbounded `find()` with no pagination, missing `relations` causing lazy-load N+1, sequential `await` for independent operations that could use `Promise.all`, and multiple `repository.save()` calls without `@Transactional`.
+
+**Second pass:** Re-read the full diff from top to bottom. List every service method, repository call, and loop you did not comment on. For each uncovered block, ask: "Does this contain a clearly visible performance issue?" Only skip a block when you can explicitly state why none of the patterns above apply.
+
+**Return format:**
+
+```
+- `path/file.ts:L42` [Short title]
+  [Description with estimated impact, e.g. "O(N) queries per request"]
+  Recommendation: [Fix with short code sketch if < 6 lines]
+```
+
+Group your findings under a `### Performance` heading. Include at least one positive highlight under `### Highlights`. If no findings, print `### Performance` + `- No findings.` and still include a `### Highlights` line.
+
+---
