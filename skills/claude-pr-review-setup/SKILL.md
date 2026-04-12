@@ -1,13 +1,13 @@
 ---
 name: claude-pr-review-setup
-description: Scaffolds a Claude Code /review GitHub Actions workflow into the current repo. Use when the user says "set up Claude PR review", "install PR review workflow", "add /review to this repo", or invokes /claude-pr-review-setup. Do not trigger automatically.
+description: Scaffolds a Claude Code /review GitHub Actions workflow into the current repo. Use when the user says "set up Claude PR review", "install PR review workflow", "add /review to this repo", "scaffold PR review", or invokes /claude-pr-review-setup. Supports flags `--upgrade-runtime` (overwrite only the runtime skill) and `--force` (overwrite all three installed files). Always use this skill when the user wants automated PR review via GitHub Actions in a new repo. Do not trigger automatically.
 license: CC-BY-4.0
 metadata:
   author: Claude Code Skills
   version: 0.1.0
 ---
 
-# claude-pr-review-setup — Scaffolder
+# claude-pr-review-setup - Scaffolder
 
 Install a `/review` GitHub Actions workflow + runtime pr-review SKILL.md into the current repo.
 

@@ -1,4 +1,4 @@
-# Runtime pr-review SKILL.md — Anatomy
+# Runtime pr-review SKILL.md - Anatomy
 
 Reference for maintainers of the `claude-pr-review-setup` skill. Not read by the runtime workflow.
 
@@ -26,7 +26,7 @@ Consolidation summary must print section counts as `(N)`, e.g. `### 🔒 Securit
 
 ## Two-pass discipline
 
-Every subagent runs a second pass: list every file or hunk not yet commented on, run the same checks again, only skip with an explicit reason. This is not optional. Without it, subagents miss roughly 30% of findings (observed in Cursor deployments).
+Every subagent runs a second pass: list every file or hunk not yet commented on, run the same checks again, only skip with an explicit reason. This is not optional. Without it, subagents miss roughly 30% of findings observed empirically.
 
 ## What to not change casually
 

@@ -1,4 +1,4 @@
-# Claude PR Review — Setup Checklist
+# Claude PR Review - Setup Checklist
 
 The `claude-pr-review-setup` skill installed these files in your repo:
 

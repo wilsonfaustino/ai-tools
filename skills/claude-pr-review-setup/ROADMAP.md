@@ -1,12 +1,12 @@
-# claude-pr-review-setup — Roadmap
+# claude-pr-review-setup - Roadmap
 
 Post-MVP work, ordered by priority.
 
 ## Subagents (reintroduce in dedicated sprints)
 
-1. **Architecture** — config-block at top of runtime SKILL.md declaring doc paths. Empty config falls back to diff-only. Rule-extraction pipeline reads whatever docs the user declares.
-2. **Requirements (spec-only, Track B)** — rewrite Resolution Logic table for spec-files-only mode. Scans PR title/body/`.specs/` for linked specs.
-3. **E2E** — inline generic heuristics for Playwright / Cypress / Vitest patterns. No external skill dependency.
+1. **Architecture** - config-block at top of runtime SKILL.md declaring doc paths. Empty config falls back to diff-only. Rule-extraction pipeline reads whatever docs the user declares.
+2. **Requirements (spec-only, Track B)** - rewrite Resolution Logic table for spec-files-only mode. Scans PR title/body/`.specs/` for linked specs.
+3. **E2E** - inline generic heuristics for Playwright / Cypress / Vitest patterns. No external skill dependency.
 
 ## Workflows
 
