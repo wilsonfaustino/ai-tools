@@ -33,9 +33,11 @@ After receiving the path:
 1. Verify the path exists and is a directory. If not, inform the user and ask
    again. Do not proceed until a valid path is provided.
 2. Create the symlink: `ln -s {user_path} .notes`
-3. If this is a git repo, add `.notes/` to `.git/info/exclude` (create the file
-   if needed). This avoids polluting the shared `.gitignore` with a user-specific
-   entry. If not a git repo, skip this step.
+3. If this is a git repo, add `.notes` (no trailing slash) to
+   `.git/info/exclude` (create the file if needed). Git treats symlinks as
+   files, not directories, so `.notes/` would fail to match. This avoids
+   polluting the shared `.gitignore` with a user-specific entry. If not a git
+   repo, skip this step.
 4. Proceed to folder scan
 
 ### Scan folder structure
