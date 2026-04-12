@@ -185,3 +185,88 @@ Only flag issues **clearly visible in the diff**, no speculation. Look for: N+1 
 Group your findings under a `### Performance` heading. Include at least one positive highlight under `### Highlights`. If no findings, print `### Performance` + `- No findings.` and still include a `### Highlights` line.
 
 ---
+
+## Step 3: Consolidation and Output
+
+After all 3 subagents complete (or error out), assemble the final report in stdout.
+
+### 3.1 Aggregate return values
+
+Collect each subagent's returned markdown. For each, note whether it succeeded or errored. Build a `SUCCEEDED_COUNT` (0..3) and an `ERRORS` list of `{subagent_name, error_message}` tuples.
+
+### 3.2 Gap detection
+
+From `$CHANGED_FILES`, identify files that received zero findings across all successful subagents. Exclude from the gap list any file matching `*.json`, `*.yaml`, `*.yml`, `*.lock`, `*.d.ts`, or pure type declaration files with no logic.
+
+### 3.3 Assemble summary
+
+Print the following to stdout. Fields in `<>` are placeholders you fill in.
+
+```markdown
+## Local PR Review - <branch> vs <RESOLVED_BASE>
+
+| | |
+|---|---|
+| Base | <RESOLVED_BASE> @ <BASE_SHA_SHORT> (<BASE_DATE>) |
+| Head | <HEAD_SHA_SHORT> |
+| Files changed | <DIFF_FILES> (excluded: <EXCLUDED_COUNT> via ignore list) |
+| Diff size | <DIFF_LINES> lines |
+| Model | <active model name, e.g. from session context> |
+| Subagents | <SUCCEEDED_COUNT> of 3 (Security, Regression, Performance) |
+| Findings | <total_findings> across <files_with_findings> files |
+
+---
+
+### Security (<N>)
+<findings from Security subagent, or "- No findings.">
+
+### Critical (<N>)
+<Regression findings with Critical severity label>
+
+### Performance (<N>)
+<findings from Performance subagent, or "- No findings.">
+
+### Warnings (<N>)
+<Regression findings with Warning severity label>
+
+### Suggestions (<N>)
+<Regression findings with Suggestion severity label>
+
+---
+### Files With No Findings
+<list of files from gap detection, or omit the entire section if empty>
+
+### Highlights
+<one bullet per succeeded subagent, collated from each subagent's Highlights block>
+```
+
+### 3.4 Partial-run header (if any subagent errored)
+
+If `SUCCEEDED_COUNT < 3`, prepend this block to the very top of the output, before the `## Local PR Review` heading:
+
+```
+WARNING: Partial review (<SUCCEEDED_COUNT> of 3 subagents succeeded)
+```
+
+And append an `### Errors` section at the end of the summary:
+
+```
+### Errors
+- <subagent_name>: <error_message>
+```
+
+### 3.5 Empty-findings fallback
+
+If all succeeded subagents reported zero findings, replace the severity sections with a single line:
+
+```
+No issues found across all review dimensions.
+```
+
+Keep the metadata table and the `### Highlights` section.
+
+### 3.6 Final output rules
+
+- No emojis anywhere in the output.
+- Section counts always use `(N)` format even when N=0.
+- Print the assembled markdown as the final response to the user. Do not write to any file.
