@@ -1,0 +1,84 @@
+name: Claude PR Review
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  pull-requests: write
+  contents: read
+  issues: read
+
+jobs:
+  review:
+    name: AI Code Review
+    if: >
+      github.event.issue.pull_request != null &&
+      contains(github.event.comment.body, '/review') &&
+      github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GH_TOKEN: ${{ github.token }}
+      BLOCKING_REVIEW: "true"
+      PR_NUMBER: ${{ github.event.issue.number }}
+
+    steps:
+      - name: Preflight - ANTHROPIC_API_KEY present
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "ANTHROPIC_API_KEY secret is not set on this repo. Aborting."
+            exit 1
+          fi
+
+      - name: Resolve PR branch
+        id: pr
+        run: |
+          DATA=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER --jq '{branch: .head.ref, sha: .head.sha, base_sha: .base.sha}')
+          echo "branch=$(echo $DATA | jq -r .branch)" >> $GITHUB_OUTPUT
+          echo "sha=$(echo $DATA | jq -r .sha)" >> $GITHUB_OUTPUT
+          echo "base_sha=$(echo $DATA | jq -r .base_sha)" >> $GITHUB_OUTPUT
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Claude PR Review
+        timeout-minutes: 30
+        run: |
+          claude -p --permission-mode acceptEdits \
+            --model claude-opus-4-6 \
+            --allowed-tools "Bash,Read,Grep,Glob,Task,WebFetch" \
+            --disallowed-tools "Edit,Write,NotebookEdit" \
+            "You are an automated PR reviewer running in GitHub Actions. The gh CLI is available and authenticated.
+
+             Read the file .claude/skills/pr-review/SKILL.md and follow the full protocol from Step 1 through Step 3.
+
+             Context:
+             - Repository: ${{ github.repository }}
+             - PR Number: $PR_NUMBER
+             - PR Head SHA: ${{ steps.pr.outputs.sha }}
+             - PR Base SHA: ${{ steps.pr.outputs.base_sha }}
+             - Branch: ${{ steps.pr.outputs.branch }}
+
+             Do NOT modify any files. Do NOT approve or request-changes via gh pr review."
+
+      - name: Blocking check
+        if: env.BLOCKING_REVIEW == 'true'
+        run: |
+          REVIEW_BODY=$(gh api repos/${{ github.repository }}/issues/$PR_NUMBER/comments --jq '[.[].body] | join("\n")')
+          if echo "$REVIEW_BODY" | grep -qE '(Critical|Security) \([1-9][0-9]*\)'; then
+            echo "Critical or security issues found. Failing pipeline."
+            exit 1
+          fi
+          echo "No blocking issues. Pass."
