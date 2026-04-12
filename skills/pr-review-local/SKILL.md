@@ -91,3 +91,38 @@ Algorithm:
   - If it starts with `-`: do not increment.
 
 Record the annotated diff as `$ANNOTATED_DIFF`. Verify it is non-empty. Subagents receive `$ANNOTATED_DIFF`, not `$DIFF`.
+
+## Step 2: Launch Subagents in Parallel
+
+Send **one message** with **three Task tool calls** all launched simultaneously. Pass to each subagent:
+- `RESOLVED_BASE`, `MERGE_BASE` (sha), `HEAD` (sha)
+- `CHANGED_FILES` (newline-separated list)
+- `ANNOTATED_DIFF` (the pre-annotated diff from Step 1.7)
+
+Subagents return free-form markdown with findings citing line references as `path/file.ts:L<n>`, using the `[L<n>]` annotations in the diff as the source of truth.
+
+If any subagent errors (Task tool failure, timeout, context overflow), capture the error message. Do not retry. Continue to Step 3 with whichever subagents succeeded.
+
+---
+
+## Severity Labels (all subagents use these)
+
+- Critical: bugs or logic errors that will cause failures
+- Security: security vulnerabilities or data exposure
+- Performance: significant performance concerns
+- Warning: code smells or maintainability issues
+- Suggestion: optional improvements
+
+---
+
+## Universal Rules (every subagent must follow)
+
+1. **Line reference allowlist:** Only cite lines that carry a `[L<n>]` annotation in the annotated diff (these are the `+` lines). Do not cite unchanged or removed lines.
+2. **Duplicate skip:** N/A in local mode (each run is fresh; no prior comments exist).
+3. **Mark resolved:** N/A in local mode (no prior comments to mark).
+4. **False positive guard:** Only report findings with >=80% confidence. Skip when uncertain.
+5. **Positive highlight:** Include at least one well-done aspect of the change in your returned markdown under a `### Highlights` heading.
+6. **Tone:** Specific, actionable, collegial. Explain WHY something is a problem.
+7. **Never** modify files, never call `gh api`, never post comments. Return findings as markdown text only.
+
+---
