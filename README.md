@@ -17,6 +17,16 @@ Personal Claude Code skills. Developed here, installed locally via `npx skills a
 | [todo](skills/todo/) | Quick-capture project todos with priority during work sessions |
 | [init-team](skills/init-team/) | Scaffold agent team infrastructure (Helen + Jess, SQLite state, inbox/outbox) |
 
+## Commands
+
+Slash commands live in `commands/` and install to `~/.claude/commands/`.
+
+| Command | Description |
+|---|---|
+| [loosen-prompts](commands/loosen-prompts.md) | Merge a curated allow/deny preset of non-destructive commands into `.claude/settings.local.json` |
+| [wt-review](commands/wt-review.md) | Create or reuse an isolated worktree for reviewing a PR |
+| [wt-clean](commands/wt-clean.md) | Remove a review worktree |
+
 ## Usage
 
 ```bash
