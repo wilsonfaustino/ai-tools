@@ -19,7 +19,7 @@ Personal Claude Code skills. Developed here, installed locally via `npx skills a
 
 ## Commands
 
-Slash commands live in `commands/` and install to `~/.claude/commands/`.
+Slash commands live in `commands/`.
 
 | Command | Description |
 |---|---|
@@ -27,10 +27,20 @@ Slash commands live in `commands/` and install to `~/.claude/commands/`.
 | [wt-review](commands/wt-review.md) | Create or reuse an isolated worktree for reviewing a PR |
 | [wt-clean](commands/wt-clean.md) | Remove a review worktree |
 
-## Usage
+## Install
+
+Skills install via `npx`:
 
 ```bash
 npx skills add <skill_name>
 ```
 
-Skills are installed to `~/.claude/skills/` and available globally across projects.
+Installed to `~/.claude/skills/` and available globally across projects.
+
+Slash commands install by manual copy:
+
+```bash
+cp commands/<name>.md ~/.claude/commands/
+```
+
+Installed to `~/.claude/commands/` and invoked as `/<name>`.
