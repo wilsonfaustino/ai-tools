@@ -102,16 +102,17 @@ Bash(chmod 777:*)
 
 ```bash
 settings_path=".claude/settings.local.json"
-mkdir -p .claude
+mkdir -p .claude || { echo "error: cannot create .claude/"; exit 1; }
 if [ ! -f "$settings_path" ]; then
-  echo '{"permissions":{"allow":[],"deny":[]}}' > "$settings_path"
+  echo '{"permissions":{"allow":[],"deny":[]}}' > "$settings_path" || { echo "error: cannot write $settings_path"; exit 1; }
 fi
 if ! jq empty "$settings_path" 2>/dev/null; then
   echo "error: $settings_path is not valid JSON. Aborting, file untouched."
   exit 1
 fi
 # ensure permissions.allow and permissions.deny exist as arrays
-jq '.permissions = (.permissions // {}) | .permissions.allow = (.permissions.allow // []) | .permissions.deny = (.permissions.deny // [])' "$settings_path" > "$settings_path.tmp" && mv "$settings_path.tmp" "$settings_path"
+tmp="$settings_path.tmp.$$"
+jq '.permissions = (.permissions // {}) | .permissions.allow = (.permissions.allow // []) | .permissions.deny = (.permissions.deny // [])' "$settings_path" > "$tmp" && mv "$tmp" "$settings_path" || { rm -f "$tmp"; echo "error: failed to normalize $settings_path"; exit 1; }
 ```
 
 ### Step 4.2: Diff
@@ -131,8 +132,11 @@ subsumes() {
   case "$user" in *:\*\)) ;; *) return 1 ;; esac
   local user_inner="${user#Bash(}"; user_inner="${user_inner%:\*)}"
   local curated_inner="${curated#Bash(}"
-  curated_inner="${curated_inner%:\*)}"
-  curated_inner="${curated_inner%)}"
+  # strip trailing :*) if present, otherwise trailing )
+  case "$curated_inner" in
+    *:\*\)) curated_inner="${curated_inner%:\*)}" ;;
+    *\)) curated_inner="${curated_inner%)}" ;;
+  esac
   [ "$curated_inner" = "$user_inner" ] && return 0
   case "$curated_inner" in
     "$user_inner "*) return 0 ;;
@@ -181,14 +185,24 @@ If `--dry-run` is set: print `(dry-run, no changes)` and exit 0.
 
 Otherwise prompt `apply? (y/N): ` and read a single line. If the response is anything other than `y` or `Y`: print `aborted, file untouched` and exit 0.
 
-On `y` or `Y`, write atomically:
+On `y` or `Y`, write atomically.
+
+Build the JSON argument arrays from the bucket results (entries are strings like `Bash(git status:*)`):
 
 ```bash
-tmp=$(mktemp "${settings_path}.XXXX")
+# Example: turn a bash array of entries into a JSON array string via jq.
+add_allow_json=$(printf '%s\n' "${add_allow[@]}" | jq -Rs 'split("\n") | map(select(length > 0))')
+add_deny_json=$(printf '%s\n' "${add_deny[@]}" | jq -Rs 'split("\n") | map(select(length > 0))')
+```
+
+Then write:
+
+```bash
+tmp=$(mktemp "${settings_path}.XXXX") || { echo "error: mktemp failed"; exit 1; }
 jq --argjson add_allow "$add_allow_json" --argjson add_deny "$add_deny_json" '
   .permissions.allow = ((.permissions.allow // []) + $add_allow)
   | .permissions.deny = ((.permissions.deny // []) + $add_deny)
-' "$settings_path" > "$tmp" && mv "$tmp" "$settings_path"
+' "$settings_path" > "$tmp" && mv "$tmp" "$settings_path" || { rm -f "$tmp"; echo "error: write failed, original untouched"; exit 1; }
 echo "wrote $settings_path"
 ```
 
