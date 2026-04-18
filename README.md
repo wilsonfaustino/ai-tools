@@ -23,7 +23,9 @@ Slash commands live in `commands/`.
 
 | Command | Description |
 |---|---|
+| [handoff](commands/handoff.md) | Dump current session state to a named slot under `.claude/handoff/` for later `/pickup` |
 | [loosen-prompts](commands/loosen-prompts.md) | Merge a curated allow/deny preset of non-destructive commands into `.claude/settings.local.json` |
+| [pickup](commands/pickup.md) | Load a handoff slot, resolve references, brief the session, and wait for go-ahead |
 | [wt-review](commands/wt-review.md) | Create or reuse an isolated worktree for reviewing a PR |
 | [wt-clean](commands/wt-clean.md) | Remove a review worktree |
 
