@@ -43,6 +43,13 @@ If path exists:
 
 If path does not exist: `git worktree add <path> origin/<branch>`.
 
+## Copy local config
+
+Copy gitignored personal config from the main checkout into the worktree. Source is the repo root (pre-flight guarantees the command runs outside any worktree). For each path below, if it exists at source, copy to the same relative path in the worktree, creating parent directories as needed. Skip silently if missing. Do not overwrite existing files in the worktree.
+
+- `CLAUDE.local.md`
+- `.claude/settings.local.json`
+
 ## Optional install
 
 Only if `--install` is present. Run inside the worktree. Detect and run one of:
