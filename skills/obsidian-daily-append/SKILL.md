@@ -9,14 +9,9 @@ description: >-
   daily", "log this PR for review", "track this ticket", "add this to my
   tasks", "add a task to my daily note", "log this to today". Do not trigger
   for general PR review requests that have no tracking intent.
-model: haiku
 ---
 
 # obsidian-daily-append
-
-## Model Enforcement
-
-This skill must run on Haiku. If the active session model is not Haiku, dispatch the entire workflow to a Haiku subagent via the Agent tool (set `model: "haiku"`) and pass the owner's original input as the prompt. Do not execute any of the steps below on a larger model.
 
 Append a task item to today's Obsidian daily note. Supports three item types:
 GitHub PR (fetched via `gh` CLI), Jira ticket, and free-text. The file is
