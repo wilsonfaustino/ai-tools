@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Push current branch and create or update a GitHub PR with an intent-driven description. Use when the user says "ship", "ship it", "create PR", "push and PR", or wants to push their branch and open a pull request. Runs pre-flight safety checks, pushes to remote, and generates PR title/body from branch name and commit history. Supports --draft and --ready flags to skip the draft/ready prompt, and --base to override the target branch.
+description: Push current branch and create or update a GitHub PR with an intent-driven description. Use when the user says "ship", "ship it", "create PR", "push and PR", or wants to push their branch and open a pull request. Runs pre-flight safety checks, pushes to remote, and generates PR title/body from branch name and commit history. Detects stacked PRs via gh-stack or base-chain walk and offers to include a Stack section in the body. Supports --draft and --ready flags to skip the draft/ready prompt, and --base to override the target branch.
 ---
 
 # Ship
@@ -103,9 +103,10 @@ git log <base>..HEAD --pretty=format:"%s%n%b"
 git diff <base>...HEAD --stat
 gh label list --json name --jq '.[].name'
 for f in .github/PULL_REQUEST_TEMPLATE.md .github/pull_request_template.md PULL_REQUEST_TEMPLATE.md .github/PULL_REQUEST_TEMPLATE/default.md; do [ -f "$f" ] && echo "$f" && break; done
+gh extension list 2>/dev/null | grep -q gh-stack && gh stack view --json 2>/dev/null || true
 ```
 
-The label list is used in the Label Validation step below. If the template check finds a file, use it as the body structure and fill each section.
+The label list is used in the Label Validation step below. If the template check finds a file, use it as the body structure and fill each section. The last command probes stack membership (see Stack Detection).
 
 ### Default format (no template)
 
@@ -123,6 +124,56 @@ The label list is used in the Label Validation step below. If the template check
 **Intent-first principle**: synthesize the PURPOSE from commits and diff.
 - Bad: "Updated auth.routes.ts, added migration script, modified user schema"
 - Good: "Migrates user data from CloudFlow to GRACE, syncing existing users with their entitlements so ADA can authenticate against the new backend"
+
+## Stack Detection
+
+**Only run on new PR creation. Skip entirely on Update Existing PR flow.**
+
+Detect stacked PR membership in this order. First hit wins:
+
+1. **gh-stack extension**: if `gh stack view --json` returned data in Gather context, parse it for the chain containing the current branch.
+2. **Base chain**: if `<base>` is NOT the repo default branch, query open PRs targeting it and check if `<base>` is itself the head of another open PR:
+
+   ```bash
+   gh pr list --head <base> --state open --json number,title,headRefName,baseRefName
+   ```
+
+   If a match exists, walk the chain upward (repeat with each parent's base) and downward (`gh pr list --base <current-head>`) until both ends terminate.
+
+If neither method yields a chain, skip the Stack section.
+
+### Stack prompt
+
+If a chain of 2+ PRs is detected, prompt:
+
+> Stacked PR detected (N PRs in chain). Append Stack section to PR body? (y/n)
+
+If no, skip. If yes, build the section.
+
+### Stack section format
+
+```markdown
+## Stack
+
+This is part of a N-PR stack:
+
+- **#<num> (this PR)** -- <pr title>
+- #<num> -- <pr title>
+- #<num> -- <pr title>
+```
+
+**Placement**: if the PR template already contains a `## Stack` heading, fill it in place. Otherwise append to the very bottom of the body (after all template-rendered sections, after Notes, after everything).
+
+**Ordering**: use the base-chain walk result, ordered from oldest ancestor (closest to default branch) to newest tip. For gh-stack JSON, follow the same root-to-tip order it returns.
+
+**Current PR marker**: bold the current PR's line with `(this PR)`.
+
+**Two-step create+edit** (current PR number does not exist at creation time):
+
+1. Create PR without Stack section.
+2. Capture returned PR number.
+3. Build Stack section with real number.
+4. `gh pr edit <new-number> --body "<body + Stack section>"`.
 
 ## Label Mapping
 
@@ -231,11 +282,12 @@ gh pr edit <number> --title "<title>" --add-label "<labels>" --body "<existing b
 4. Handle soft blocks (single decision point)
 5. Push
 6. Detect existing PR
-7. Gather context in parallel (commits + diff stat + prefetch labels + template check)
+7. Gather context in parallel (commits + diff stat + prefetch labels + template check + stack probe)
 8. Generate title + body + labels
 9. Validate labels, offer creation if missing
 10. If existing PR with new commits: prompt overwrite/append/skip
 11. If new PR and no `--draft`/`--ready` flag: ask "Open as draft or ready?"
 12. Single `gh pr create` (with or without `--draft`) or `gh pr edit`
+13. If new PR and stack detected: prompt for Stack section, then `gh pr edit` to append with real PR number
 
-Target: 7-9 tool calls for a clean branch.
+Target: 7-9 tool calls for a clean branch (10-12 with stack detected).
