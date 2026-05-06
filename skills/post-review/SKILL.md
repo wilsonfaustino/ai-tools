@@ -22,30 +22,37 @@ gh pr view --json number,url,headRefOid,headRepositoryOwner,headRepository \
   --jq '{number,url,sha: .headRefOid, owner: .headRepositoryOwner.login, repo: .headRepository.name}'
 ```
 
-Then fetch the PR diff:
+Then fetch the changed-file positions. Do NOT load `gh pr diff` whole into
+conversation context. We only need the line-range map for diff validation.
 
-```bash
-gh pr diff --name-only
-gh pr diff
-```
+### Context-mode (default when available)
 
-### Context-mode optimization
-
-If context-mode MCP tools are available, use `ctx_batch_execute` to run the diff
-commands in the sandbox:
+When context-mode MCP tools are available, this is the required path. The full
+patch bodies stay in the sandbox; only the position map returns to context.
 
 ```
 ctx_batch_execute(
   commands: [
-    "gh pr diff --name-only",
-    "gh pr diff"
+    "gh api repos/{owner}/{repo}/pulls/{number}/files --paginate --jq '[.[] | {path: .filename, patch: .patch}]'"
   ],
   queries: [
-    "list all files changed in this PR",
-    "for each file, what line ranges are added or modified in the diff"
+    "for each file, parse the @@ hunk headers and return a JSON map of {path: [[start_line, end_line], ...]} covering only added or modified lines on the RIGHT side; discard patch bodies"
   ]
 )
 ```
+
+Capture the returned map as `DIFF_POSITIONS`.
+
+### Fallback (no context-mode)
+
+```bash
+gh api repos/{owner}/{repo}/pulls/{number}/files --paginate \
+  --jq '[.[] | {path: .filename, patch: .patch}]'
+```
+
+Parse `@@ -<old>,<n> +<new>,<m> @@` hunks per file, build `DIFF_POSITIONS` as
+`{path: [[start_line, end_line], ...]}`, then drop the patch bodies before
+proceeding.
 
 ### Hard blocks (refuse to proceed)
 
@@ -54,13 +61,17 @@ ctx_batch_execute(
 
 ## Parse Context
 
-Scan the conversation for structured findings. Look for:
+Scan the conversation for structured findings, walking backward from the most
+recent message. Stop at the first match. Do not re-tokenize older runs.
+
+Look for:
 - Section 3 table from `staff-review` (preferred)
 - Any markdown table or numbered list with severity, file:line, and issue description
 
 Extract only items where `Addressed?` is `No` or not specified.
 
-If multiple sets of findings exist in context (e.g., staff-review was run more than once), use the most recent set. If ambiguous, ask the user which set to use.
+If the first match is ambiguous (e.g., overlapping tables in the same message),
+ask the user which set to use.
 
 If no structured findings are found, prompt:
 
@@ -69,12 +80,15 @@ If no structured findings are found, prompt:
 
 ## Diff Validation
 
-Build a map of valid comment positions from the PR diff (file path + line numbers
-within added/modified hunks).
+Use `DIFF_POSITIONS` from pre-flight. Validation is lazy: only check files
+actually referenced by findings. Do not parse hunks for files no finding
+touches.
 
-For each candidate comment, check if its `file:line` falls within the diff map:
+For each candidate comment, check if its `file:line` falls within
+`DIFF_POSITIONS[path]` ranges:
 - In diff: valid, proceed normally
 - Out of diff: tag with `[OUT-OF-DIFF]`
+- Path absent from `DIFF_POSITIONS`: tag with `[OUT-OF-DIFF]`
 
 ## Interactive Loop
 
