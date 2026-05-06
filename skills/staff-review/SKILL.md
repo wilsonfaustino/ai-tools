@@ -44,6 +44,29 @@ ls ~/.claude/plugins/*/pr-review-toolkit/commands/review-pr.md 2>/dev/null \
 ls ~/.claude/skills/pr-review-local/SKILL.md 2>/dev/null
 ```
 
+### Diff size gate
+
+After pre-flight, measure diff size to decide fan-out scope:
+
+```bash
+gh pr diff --name-only | wc -l   # FILES_CHANGED
+gh pr diff | wc -l               # DIFF_LINES
+gh pr diff --name-only           # CHANGED_FILES
+```
+
+Apply tiers:
+
+- **Doc/config-only**: every entry in `CHANGED_FILES` matches `*.md`, `*.mdx`,
+  `*.txt`, `*.yml`, `*.yaml`, `*.json`, `*.toml`. Set `LIGHT_MODE=true`,
+  `LOCAL_ENABLED=false`. Toolkit task runs with a reduced agent allowlist
+  (code-reviewer only). Note `NOTE: Doc/config-only diff; light review.` in
+  output header.
+- **Large diff**: `DIFF_LINES > 2000` or `FILES_CHANGED > 30`. Set
+  `LOCAL_ENABLED=false` regardless of install state. Note
+  `NOTE: Large diff (<DIFF_LINES> lines / <FILES_CHANGED> files); local
+  subagents skipped to control cost.` in output header.
+- **Default**: proceed with full fan-out.
+
 ### Hard blocks (refuse to proceed)
 
 - `gh auth status` fails
@@ -81,6 +104,11 @@ this context in the task:
 > - Categorize by severity: critical, warning, nit, suggestion
 > - Point to the exact file and line
 > - Suggest a friendly, constructive fix (no em-dashes, concise)
+>
+> Limit yourself to these agents:
+> `code-reviewer`, `silent-failure-hunter`, `pr-test-analyzer`. Do not invoke
+> `comment-analyzer`, `type-design-analyzer`, or `code-simplifier`. If
+> `LIGHT_MODE=true`, run only `code-reviewer`.
 >
 > Return structured markdown with severity sections: ## Critical, ## Warning,
 > ## Nit, ## Suggestion. Each finding must include the source agent name in
@@ -187,8 +215,27 @@ submitted_at}`.
 
 Skip this entire section if `JUDGE_ENABLED=false`.
 
+### Gating
+
+Skip the judge (treat as `JUDGE_ENABLED=false` for this run only) when any of:
+
+- Total findings across all buckets `< 8`
+- All findings have severity in `{nit, suggestion}`
+
+Note `NOTE: Judge skipped (low finding count or all low-severity).` in the
+output header when gated.
+
+### Diff slicing
+
+Build a minimal diff for the judge instead of the full `gh pr diff`:
+
+1. Collect the unique set of file paths from all findings' `file_line` fields.
+2. If the set is non-empty, run `gh pr diff -- <path1> <path2> ...` and pass
+   that as `JUDGE_DIFF`.
+3. If the set is empty (no file refs), fall back to `gh pr diff` whole.
+
 Spawn a single subagent with fresh context (no prior conversation). Pass:
-1. The full PR diff: run `gh pr diff` and include the output verbatim
+1. `JUDGE_DIFF` (sliced PR diff per above)
 2. All findings from all four buckets, formatted as a numbered list with
    `source`, `severity`, `file_line`, and `issue` fields
 
