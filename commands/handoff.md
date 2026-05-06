@@ -18,10 +18,18 @@ Abort with a clear message if any fail:
 
 ## First-run setup
 
-Repo root is `git rev-parse --show-toplevel` when in a git repo, otherwise `pwd`.
+Resolve paths:
 
-- Ensure `<repo-root>/.claude/handoff/` exists (`mkdir -p`).
-- If in a git repo, ensure `.claude/handoff/` is listed in `<repo-root>/.git/info/exclude`. Create the file if missing. Append only if the exact line is not already present. Do NOT touch `.gitignore`.
+- `cwd` = `pwd` (absolute current working directory; this is what gets recorded in frontmatter, even when running inside a worktree).
+- If in a git repo: `main-root` = `dirname "$(git rev-parse --path-format=absolute --git-common-dir)"`. This resolves to the main working tree even when the command runs inside a linked worktree, because `--git-common-dir` always points at the main `.git` directory.
+- If NOT in a git repo: `main-root` = `pwd`.
+- `git-common-dir` = `git rev-parse --path-format=absolute --git-common-dir` (only when in a git repo).
+- `in-worktree` = true when in a git repo AND `git rev-parse --show-toplevel` differs from `main-root`.
+
+Setup steps:
+
+- Ensure `<main-root>/.claude/handoff/` exists (`mkdir -p`). Handoffs always land in the main repo so the slot survives `/wt-clean`.
+- If in a git repo, ensure `.claude/handoff/` is listed in `<git-common-dir>/info/exclude`. Create the file if missing. Append only if the exact line is not already present. Do NOT touch `.gitignore`. Use `--git-common-dir` rather than `<main-root>/.git/info/exclude` so this works inside a linked worktree (where `.git` is a file, not a directory).
 
 ## Draft the handoff
 
@@ -35,6 +43,7 @@ slug: <slug>
 created: <ISO-8601 UTC, e.g. 2026-04-18T14:32:00Z>
 branch: <git rev-parse --abbrev-ref HEAD, or "none" if not in a git repo>
 cwd: <absolute current working directory>
+worktree: <absolute path to current worktree, only when in-worktree is true; omit otherwise>
 ---
 ```
 
@@ -54,7 +63,7 @@ Rules for drafting:
 
 ## Handle existing slot
 
-Target path: `<repo-root>/.claude/handoff/<slug>.md`.
+Target path: `<main-root>/.claude/handoff/<slug>.md`.
 
 If the file exists and `--force` is NOT set:
 
@@ -73,16 +82,18 @@ Write the composed content to the target path using the Write tool. Do NOT edit 
 Print:
 
 ```
-Handoff written: <relative-path-from-repo-root>
+Handoff written: <path-relative-to-main-root>
 Slug: <slug>
 Resume with: /pickup <slug>
 ```
 
+When `in-worktree` is true, also print a second line under the path: `Source worktree: <cwd>` so the user knows the slot was saved into the main repo from a linked worktree.
+
 ## Rules
 
 - Never clear the session, never run `/clear`, never exit.
-- Never write outside `<repo-root>/.claude/handoff/`.
-- Never add `.claude/handoff/` to `.gitignore`. Use `.git/info/exclude` only.
+- Never write outside `<main-root>/.claude/handoff/`. Worktrees always write into the main repo's slot directory.
+- Never add `.claude/handoff/` to `.gitignore`. Use the common `info/exclude` (resolved via `git rev-parse --git-common-dir`) only.
 - Never paste PR bodies, diffs, plan bodies, or review content into the handoff. Pointers only.
 - Never prompt the user for content. Draft from session context.
 - Never `cd`. Always use absolute paths in Bash commands. `cd` persists across tool calls and corrupts later operations.
