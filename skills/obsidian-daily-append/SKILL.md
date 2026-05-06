@@ -74,9 +74,9 @@ classification step.
 
 | Flag (case-insensitive) | Section label |
 |---|---|
-| `--Syngenta` | `🌿 Syngenta` |
-| `--Jaya` | `🦎 Jaya` |
-| `--Home` | `🏠 Home` |
+| `--Syngenta` | `Syngenta` |
+| `--Jaya` | `Jaya` |
+| `--Home` | `Home` |
 | `--Side-Projects` or `--SideProjects` | `Side Projects` |
 
 When a valid flag is present, announce and proceed -- no confirmation needed:
@@ -90,7 +90,7 @@ If the flag value does not match the table, stop and tell the owner:
 ### Heuristic (no flag)
 
 For a **PR**, check the GitHub org:
-- Org is `syngenta-digital` -> `🌿 Syngenta` (announce and proceed, no confirmation)
+- Org is `syngenta-digital` -> `Syngenta` (announce and proceed, no confirmation)
 - Otherwise -> apply keyword heuristics below and ask the owner to confirm
 
 For a **Jira ticket**, apply keyword heuristics and ask the owner to confirm.
@@ -99,9 +99,9 @@ For **free-text**, skip heuristics and ask the owner which section to use.
 
 | Keyword pattern in repo/ticket/description | Suggested section |
 |---|---|
-| `syngenta` | `🌿 Syngenta` |
-| `jaya` | `🦎 Jaya` |
-| `home`, `house`, `personal` | `🏠 Home` |
+| `syngenta` | `Syngenta` |
+| `jaya` | `Jaya` |
+| `home`, `house`, `personal` | `Home` |
 | other / side project | `Side Projects` |
 
 When confirming:
@@ -128,7 +128,7 @@ Then call the script with the resolved type and section. Examples:
 ```bash
 python3 <skill-dir>/scripts/append_task.py \
   --file "$DAILY_NOTE" \
-  --section "🌿 Syngenta" \
+  --section "Syngenta" \
   --type pr \
   --pr-url "https://github.com/syngenta-digital/api-python-protector-.../pull/1149"
 ```
@@ -137,7 +137,7 @@ python3 <skill-dir>/scripts/append_task.py \
 ```bash
 python3 <skill-dir>/scripts/append_task.py \
   --file "$DAILY_NOTE" \
-  --section "🌿 Syngenta" \
+  --section "Syngenta" \
   --type ticket \
   --ticket-key "OBS-4821" \
   --ticket-url "https://syngenta.atlassian.net/browse/OBS-4821" \
@@ -149,7 +149,7 @@ python3 <skill-dir>/scripts/append_task.py \
 ```bash
 python3 <skill-dir>/scripts/append_task.py \
   --file "$DAILY_NOTE" \
-  --section "🌿 Syngenta" \
+  --section "Syngenta" \
   --type free \
   --text "follow up with Marco on the deployment"
 ```
