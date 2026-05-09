@@ -1,0 +1,318 @@
+{
+  "total": 6,
+  "p": 1,
+  "ps": 500,
+  "paging": {
+    "pageIndex": 1,
+    "pageSize": 500,
+    "total": 6
+  },
+  "effortTotal": 30,
+  "debtTotal": 30,
+  "issues": [
+    {
+      "key": "AZ4Ji6k1CmMGJffqMp2t",
+      "rule": "external_eslint_repo:prettier/prettier",
+      "severity": "MAJOR",
+      "component": "syngenta-digital_protector-admin-client:src/components/addPhenomemonModal/addPhenomenonModal.tsx",
+      "project": "syngenta-digital_protector-admin-client",
+      "line": 229,
+      "hash": "19edc00549268082fee2f4dbf4f52380",
+      "textRange": {
+        "startLine": 229,
+        "endLine": 230,
+        "startOffset": 55,
+        "endOffset": 12
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Delete `⏎············`",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "wilson.faustino@syngenta.com",
+      "tags": [],
+      "creationDate": "2026-05-08T21:05:17+0000",
+      "updateDate": "2026-05-08T21:42:01+0000",
+      "type": "CODE_SMELL",
+      "organization": "syngenta-digital",
+      "pullRequest": "2227",
+      "externalRuleEngine": "eslint_repo",
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "projectName": "web-react-protector-admin-client",
+      "internalTags": [],
+      "lastChangeAnalysisUuid": "a274b42c-1d90-4a74-abac-4a6e103ca383",
+      "lastChangeSource": "ANALYSIS"
+    },
+    {
+      "key": "AZ4Ji6mvCmMGJffqMp2u",
+      "rule": "external_eslint_repo:@typescript-eslint/no-explicit-any",
+      "severity": "MAJOR",
+      "component": "syngenta-digital_protector-admin-client:src/components/addPhenomemonModal/__tests__/addPhenomenonModal.workspace.test.tsx",
+      "project": "syngenta-digital_protector-admin-client",
+      "hash": "ef26af269da09c1a031a4b409dd95e4f",
+      "textRange": {
+        "startLine": 11,
+        "endLine": 11,
+        "startOffset": 37,
+        "endOffset": 40
+      },
+      "flows": [],
+      "resolution": "FIXED",
+      "status": "CLOSED",
+      "message": "Unexpected any. Specify a different type.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "wilson.faustino@syngenta.com",
+      "tags": [],
+      "creationDate": "2026-05-08T21:04:17+0000",
+      "updateDate": "2026-05-09T12:11:25+0000",
+      "closeDate": "2026-05-09T12:11:25+0000",
+      "type": "CODE_SMELL",
+      "organization": "syngenta-digital",
+      "pullRequest": "2227",
+      "externalRuleEngine": "eslint_repo",
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "FIXED",
+      "projectName": "web-react-protector-admin-client",
+      "internalTags": [],
+      "lastChangeAnalysisUuid": "16b61671-da08-4e56-a6d0-cb9c8cd7c913",
+      "lastChangeSource": "ANALYSIS"
+    },
+    {
+      "key": "AZ4Ji6mvCmMGJffqMp2v",
+      "rule": "external_eslint_repo:react/jsx-boolean-value",
+      "severity": "MAJOR",
+      "component": "syngenta-digital_protector-admin-client:src/components/addPhenomemonModal/__tests__/addPhenomenonModal.workspace.test.tsx",
+      "project": "syngenta-digital_protector-admin-client",
+      "hash": "ac763d8c836f63e7841f312c47a703dc",
+      "textRange": {
+        "startLine": 15,
+        "endLine": 15,
+        "startOffset": 6,
+        "endOffset": 20
+      },
+      "flows": [],
+      "resolution": "FIXED",
+      "status": "CLOSED",
+      "message": "Value must be omitted for boolean attributes",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "wilson.faustino@syngenta.com",
+      "tags": [],
+      "creationDate": "2026-05-08T21:04:17+0000",
+      "updateDate": "2026-05-09T12:11:25+0000",
+      "closeDate": "2026-05-09T12:11:25+0000",
+      "type": "CODE_SMELL",
+      "organization": "syngenta-digital",
+      "pullRequest": "2227",
+      "externalRuleEngine": "eslint_repo",
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "FIXED",
+      "projectName": "web-react-protector-admin-client",
+      "internalTags": [],
+      "lastChangeAnalysisUuid": "16b61671-da08-4e56-a6d0-cb9c8cd7c913",
+      "lastChangeSource": "ANALYSIS"
+    },
+    {
+      "key": "AZ4Ji6mvCmMGJffqMp2w",
+      "rule": "external_eslint_repo:@typescript-eslint/no-empty-function",
+      "severity": "MAJOR",
+      "component": "syngenta-digital_protector-admin-client:src/components/addPhenomemonModal/__tests__/addPhenomenonModal.workspace.test.tsx",
+      "project": "syngenta-digital_protector-admin-client",
+      "hash": "cbc80bb42ff3cb7a529c80b612dd34d8",
+      "textRange": {
+        "startLine": 18,
+        "endLine": 18,
+        "startOffset": 22,
+        "endOffset": 24
+      },
+      "flows": [],
+      "resolution": "FIXED",
+      "status": "CLOSED",
+      "message": "Unexpected empty arrow function.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "wilson.faustino@syngenta.com",
+      "tags": [],
+      "creationDate": "2026-05-08T21:04:17+0000",
+      "updateDate": "2026-05-09T12:11:25+0000",
+      "closeDate": "2026-05-09T12:11:25+0000",
+      "type": "CODE_SMELL",
+      "organization": "syngenta-digital",
+      "pullRequest": "2227",
+      "externalRuleEngine": "eslint_repo",
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "FIXED",
+      "projectName": "web-react-protector-admin-client",
+      "internalTags": [],
+      "lastChangeAnalysisUuid": "16b61671-da08-4e56-a6d0-cb9c8cd7c913",
+      "lastChangeSource": "ANALYSIS"
+    },
+    {
+      "key": "AZ4Ji6mvCmMGJffqMp2x",
+      "rule": "external_eslint_repo:@typescript-eslint/no-empty-function",
+      "severity": "MAJOR",
+      "component": "syngenta-digital_protector-admin-client:src/components/addPhenomemonModal/__tests__/addPhenomenonModal.workspace.test.tsx",
+      "project": "syngenta-digital_protector-admin-client",
+      "hash": "0de45f1fbb74a67cc71da7e2a9aa4947",
+      "textRange": {
+        "startLine": 19,
+        "endLine": 19,
+        "startOffset": 27,
+        "endOffset": 29
+      },
+      "flows": [],
+      "resolution": "FIXED",
+      "status": "CLOSED",
+      "message": "Unexpected empty arrow function.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "wilson.faustino@syngenta.com",
+      "tags": [],
+      "creationDate": "2026-05-08T21:04:17+0000",
+      "updateDate": "2026-05-09T12:11:25+0000",
+      "closeDate": "2026-05-09T12:11:25+0000",
+      "type": "CODE_SMELL",
+      "organization": "syngenta-digital",
+      "pullRequest": "2227",
+      "externalRuleEngine": "eslint_repo",
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "FIXED",
+      "projectName": "web-react-protector-admin-client",
+      "internalTags": [],
+      "lastChangeAnalysisUuid": "16b61671-da08-4e56-a6d0-cb9c8cd7c913",
+      "lastChangeSource": "ANALYSIS"
+    },
+    {
+      "key": "AZ4KeXn9AFXVgHJSoQX_",
+      "rule": "external_eslint_repo:prettier/prettier",
+      "severity": "MAJOR",
+      "component": "syngenta-digital_protector-admin-client:src/containers/Characteristic/characteristic-content.tsx",
+      "project": "syngenta-digital_protector-admin-client",
+      "hash": "482b78d109b0eba26c3b9a676b356eb1",
+      "textRange": {
+        "startLine": 157,
+        "endLine": 157,
+        "startOffset": 67,
+        "endOffset": 68
+      },
+      "flows": [],
+      "resolution": "FIXED",
+      "status": "CLOSED",
+      "message": "Delete `·`",
+      "effort": "5min",
+      "debt": "5min",
+      "assignee": "gabrielluka@github",
+      "author": "gabriel.santos-4@syngenta.com",
+      "tags": [],
+      "creationDate": "2026-02-06T21:07:56+0000",
+      "updateDate": "2026-05-09T12:11:25+0000",
+      "closeDate": "2026-05-09T12:11:25+0000",
+      "type": "CODE_SMELL",
+      "organization": "syngenta-digital",
+      "pullRequest": "2227",
+      "externalRuleEngine": "eslint_repo",
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "FIXED",
+      "projectName": "web-react-protector-admin-client",
+      "internalTags": [],
+      "lastChangeAnalysisUuid": "16b61671-da08-4e56-a6d0-cb9c8cd7c913",
+      "lastChangeSource": "ANALYSIS"
+    }
+  ],
+  "components": [
+    {
+      "organization": "syngenta-digital",
+      "key": "syngenta-digital_protector-admin-client:src/containers/Characteristic/characteristic-content.tsx",
+      "uuid": "AZ4KeXQ-AFXVgHJSoQBu",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "characteristic-content.tsx",
+      "longName": "src/containers/Characteristic/characteristic-content.tsx",
+      "path": "src/containers/Characteristic/characteristic-content.tsx",
+      "pullRequest": "2227"
+    },
+    {
+      "organization": "syngenta-digital",
+      "key": "syngenta-digital_protector-admin-client",
+      "uuid": "AZ4JimSAekDazGn-1DgV",
+      "enabled": true,
+      "qualifier": "TRK",
+      "name": "web-react-protector-admin-client",
+      "longName": "web-react-protector-admin-client",
+      "pullRequest": "2227"
+    },
+    {
+      "organization": "syngenta-digital",
+      "key": "syngenta-digital_protector-admin-client:src/components/addPhenomemonModal/addPhenomenonModal.tsx",
+      "uuid": "AZ4Ji6ONCmMGJffqMptQ",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "addPhenomenonModal.tsx",
+      "longName": "src/components/addPhenomemonModal/addPhenomenonModal.tsx",
+      "path": "src/components/addPhenomemonModal/addPhenomenonModal.tsx",
+      "pullRequest": "2227"
+    },
+    {
+      "organization": "syngenta-digital",
+      "key": "syngenta-digital_protector-admin-client:src/components/addPhenomemonModal/__tests__/addPhenomenonModal.workspace.test.tsx",
+      "uuid": "AZ4Ji6ONCmMGJffqMptS",
+      "enabled": true,
+      "qualifier": "UTS",
+      "name": "addPhenomenonModal.workspace.test.tsx",
+      "longName": "src/components/addPhenomemonModal/__tests__/addPhenomenonModal.workspace.test.tsx",
+      "path": "src/components/addPhenomemonModal/__tests__/addPhenomenonModal.workspace.test.tsx",
+      "pullRequest": "2227"
+    }
+  ],
+  "organizations": [
+    {
+      "key": "syngenta-digital",
+      "name": "Syngenta Digital"
+    }
+  ],
+  "facets": []
+}
