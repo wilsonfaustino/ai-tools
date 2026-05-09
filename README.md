@@ -26,6 +26,7 @@ Slash commands live in `commands/`.
 | [handoff](commands/handoff.md) | Dump current session state to a named slot under `.claude/handoff/` for later `/pickup` |
 | [loosen-prompts](commands/loosen-prompts.md) | Merge a curated allow/deny preset of non-destructive commands into `.claude/settings.local.json` |
 | [pickup](commands/pickup.md) | Load a handoff slot, resolve references, brief the session, and wait for go-ahead |
+| [sonar-pr](commands/sonar-pr.md) | Fetch open Sonar issues for the current PR and print a grouped severity table |
 | [wt-review](commands/wt-review.md) | Create or reuse an isolated worktree for reviewing a PR |
 | [wt-clean](commands/wt-clean.md) | Remove a review worktree |
 
@@ -43,6 +44,12 @@ Slash commands install by manual copy:
 
 ```bash
 cp commands/<name>.md ~/.claude/commands/
+```
+
+If a command bundles helper scripts (e.g. `commands/sonar-pr/`), copy the directory too:
+
+```bash
+cp -r commands/<name> ~/.claude/commands/
 ```
 
 Installed to `~/.claude/commands/` and invoked as `/<name>`.
