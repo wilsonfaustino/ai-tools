@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claude Code Token Usage Report</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --border: #262c3a;
+    --text: #e6edf3;
+    --muted: #8b95a7;
+    --accent: #ff6b35;
+    --accent2: #58a6ff;
+    --good: #3fb950;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px;
+    background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  h1 { margin: 0 0 4px; font-size: 24px; }
+  .meta { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+  .cards {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin-bottom: 28px;
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+  }
+  .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card .value { font-size: 22px; font-weight: 600; margin-top: 6px; }
+  .card.cost .value { color: var(--accent); }
+  .card.tokens .value { color: var(--accent2); }
+  table {
+    width: 100%; border-collapse: collapse;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+  }
+  th, td {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  th {
+    background: #1c2230; color: var(--muted);
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+    cursor: pointer; user-select: none;
+  }
+  th:hover { color: var(--text); }
+  th.sort-asc::after { content: " \25B2"; color: var(--accent); }
+  th.sort-desc::after { content: " \25BC"; color: var(--accent); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.cost { color: var(--accent); font-weight: 600; }
+  tbody tr:hover { background: #1c2230; }
+  tfoot td { font-weight: 600; background: #1c2230; border-top: 2px solid var(--border); }
+  .footnote { color: var(--muted); margin-top: 16px; font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1>Claude Code Token Usage Report</h1>
+  <div class="meta">{{META}}</div>
+
+  <div class="cards">
+{{CARDS}}
+  </div>
+
+  <table id="usage">
+    <thead>
+      <tr>
+        <th data-type="str">{{PERIOD_LABEL}}</th>
+        <th data-type="str">Models</th>
+        <th data-type="num">Input</th>
+        <th data-type="num">Output</th>
+        <th data-type="num">Cache Create</th>
+        <th data-type="num">Cache Read</th>
+        <th data-type="num">Total Tokens</th>
+        <th data-type="num">Cost</th>
+      </tr>
+    </thead>
+    <tbody>
+{{ROWS}}
+    </tbody>
+    <tfoot>
+{{TFOOT}}
+    </tfoot>
+  </table>
+
+  <div class="footnote">Source: <code>{{SOURCE_CMD}}</code></div>
+
+<script>
+(function() {
+  const table = document.getElementById('usage');
+  const tbody = table.tBodies[0];
+  const headers = table.querySelectorAll('th');
+  headers.forEach((th, idx) => {
+    th.addEventListener('click', () => {
+      const type = th.dataset.type;
+      const asc = !th.classList.contains('sort-asc');
+      headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+      th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      rows.sort((a, b) => {
+        let av = a.children[idx].textContent.trim();
+        let bv = b.children[idx].textContent.trim();
+        if (type === 'num') {
+          av = parseFloat(av.replace(/[$,]/g, '')) || 0;
+          bv = parseFloat(bv.replace(/[$,]/g, '')) || 0;
+          return asc ? av - bv : bv - av;
+        }
+        return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+      });
+      rows.forEach(r => tbody.appendChild(r));
+    });
+  });
+})();
+</script>
+</body>
+</html>
