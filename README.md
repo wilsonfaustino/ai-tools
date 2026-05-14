@@ -23,9 +23,11 @@ Slash commands live in `commands/`.
 
 | Command | Description |
 |---|---|
+| [ccusage-html](commands/ccusage-html.md) | Run `npx ccusage` and render output as a standalone HTML report |
 | [handoff](commands/handoff.md) | Dump current session state to a named slot under `.claude/handoff/` for later `/pickup` |
 | [loosen-prompts](commands/loosen-prompts.md) | Merge a curated allow/deny preset of non-destructive commands into `.claude/settings.local.json` |
 | [pickup](commands/pickup.md) | Load a handoff slot, resolve references, brief the session, and wait for go-ahead |
+| [rca](commands/rca.md) | Draft a Root Cause Analysis from conversation context and post it to a Jira ticket field |
 | [sonar-pr](commands/sonar-pr.md) | Fetch open Sonar issues for the current PR and print a grouped severity table |
 | [wt-review](commands/wt-review.md) | Create or reuse an isolated worktree for reviewing a PR |
 | [wt-clean](commands/wt-clean.md) | Remove a review worktree |
