@@ -32,7 +32,16 @@ Run in order. Abort with a clear message on any failure.
 
 ## Build findings JSON
 
-Reuse the parsing logic documented in `skills/post-review/SKILL.md` sections "Parse Context" and "Diff Validation". Produce an in-memory object:
+Scan the conversation backward from the most recent message, stop at the first match. Look for:
+
+- A markdown table or numbered list whose rows carry severity, `file:line`, and a description (the staff-review Section 3 table is the preferred source if present).
+- Take only items where an `Addressed?` column is `No` or absent.
+
+For each finding, capture severity (lowercase: critical, major, minor, nit), path, line, and body. Body must start with `**[severity]**`; if missing, prepend it. Then walk `DIFF_POSITIONS` (built in pre-flight from `gh api repos/{owner}/{repo}/pulls/{number}/files`): if the line falls inside a hunk for that path, set `in_diff: true`, else `in_diff: false`.
+
+Pre-flight assembles `DIFF_POSITIONS` as `{path: [[start_line, end_line], ...]}` by parsing `@@ -<old>,<n> +<new>,<m> @@` hunk headers and keeping only added/modified RIGHT-side lines. Discard patch bodies after extracting the ranges.
+
+Produce an in-memory object:
 
 ```json
 {
