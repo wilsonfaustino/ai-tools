@@ -11,11 +11,22 @@ OPEN_BY_DEFAULT = {"critical", "major"}
 CHECKED_BY_DEFAULT = {"critical", "major"}
 
 
+class RenderError(Exception):
+    pass
+
+
 def load_payload() -> dict:
     try:
         return json.load(sys.stdin)
     except json.JSONDecodeError as exc:
-        sys.stderr.write(f"Invalid JSON on stdin: {exc}\n")
+        raise RenderError(f"Invalid JSON on stdin: {exc}") from exc
+
+
+def main_cli() -> None:
+    try:
+        main()
+    except RenderError as exc:
+        sys.stderr.write(f"{exc}\n")
         sys.exit(1)
 
 
@@ -92,4 +103,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main_cli()

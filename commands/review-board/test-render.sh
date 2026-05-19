@@ -20,6 +20,8 @@ grep -q 'data-severity="nit"'      "$OUT" || { echo "FAIL: nit section missing" 
 grep -q 'class="badge out-of-diff"' "$OUT" || { echo "FAIL: out-of-diff badge missing" >&2; exit 1; }
 grep -q 'id="submit-btn"'          "$OUT" || { echo "FAIL: submit button missing"    >&2; exit 1; }
 grep -q 'src/db.ts:88'             "$OUT" || { echo "FAIL: known finding path missing" >&2; exit 1; }
+grep -q '<details class="severity"' "$OUT" || { echo "FAIL: severity details tag missing" >&2; exit 1; }
+grep -q 'details.severity'          "$OUT" || { echo "FAIL: CSS selector does not match emitted tag" >&2; exit 1; }
 
 echo "PASS"
 
