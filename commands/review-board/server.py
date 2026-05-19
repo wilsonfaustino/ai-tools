@@ -2,7 +2,6 @@
 """HTTP server that hosts the review-board page and writes submission JSON."""
 import argparse
 import json
-import os
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
