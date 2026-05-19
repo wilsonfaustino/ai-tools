@@ -32,7 +32,10 @@ def group_by_severity(findings: list[dict]) -> dict[str, list[dict]]:
 def render_row(finding: dict) -> str:
     severity = html.escape(finding.get("severity", "minor"))
     path = html.escape(finding.get("path", ""))
-    line = int(finding.get("line", 0))
+    try:
+        line = int(finding.get("line", 0))
+    except (TypeError, ValueError):
+        line = 0
     in_diff = bool(finding.get("in_diff", True))
     body = html.escape(finding.get("body", ""))
     checked = "checked" if severity in CHECKED_BY_DEFAULT else ""
@@ -83,7 +86,7 @@ def main() -> None:
         .replace("{{SHA_SHORT}}", html.escape(sha[:7]))
         .replace("{{TOTAL}}", str(len(findings)))
         .replace("{{SECTIONS}}", sections)
-        .replace("{{PR_JSON}}", json.dumps(pr))
+        .replace("{{PR_JSON}}", json.dumps(pr).replace("</", "<\\/"))
     )
     sys.stdout.write(output)
 
