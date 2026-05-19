@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review Board · PR #{{PR_NUMBER}}</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #111; color: #eee; margin: 0; padding: 24px 24px 96px; }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #1a1a1a; border-radius: 8px; margin-bottom: 16px; }
+  header .meta { opacity: 0.7; font-size: 0.85em; }
+  .bulk { display: flex; gap: 8px; }
+  .bulk button { background: #2a2a2a; color: #eee; border: 1px solid #333; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+  details.severity { border-left: 3px solid #555; padding: 10px 12px; margin-bottom: 10px; border-radius: 4px; background: #1a1a1a; }
+  details.severity[data-severity="critical"] { background: #2a1414; border-color: #c44; }
+  details.severity[data-severity="major"]    { background: #2a2414; border-color: #d80; }
+  details.severity[data-severity="minor"]    { background: #1f2a14; border-color: #8b3; }
+  details.severity[data-severity="nit"]      { background: #142a2a; border-color: #5ad; }
+  details.severity > summary { cursor: pointer; font-weight: bold; user-select: none; }
+  .row { padding: 10px 0; border-bottom: 1px solid #2a2a2a; }
+  .row:last-child { border-bottom: none; }
+  .row label.head { display: flex; gap: 8px; align-items: flex-start; }
+  .row code.loc { font-size: 0.9em; }
+  .row textarea { width: 100%; background: #111; color: #eee; border: 1px solid #333; padding: 6px; margin-top: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; min-height: 48px; }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 0.7em; margin-left: 6px; }
+  .badge.out-of-diff { background: #553; color: #fc6; }
+  .row select { background: #111; color: #eee; border: 1px solid #333; font-size: 0.75em; margin-left: 4px; }
+  footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 24px; background: #0a0a0a; border-top: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+  footer button { background: #2a5a2a; color: #eee; border: 1px solid #3a7a3a; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+  footer button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status { padding: 8px 12px; margin-top: 8px; border-radius: 4px; }
+  .status.ok { background: #1a3a1a; color: #cfc; }
+  .status.err { background: #3a1a1a; color: #fcc; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <strong>PR #{{PR_NUMBER}}</strong>
+    <span class="meta">· commit {{SHA_SHORT}} · {{TOTAL}} findings</span>
+  </div>
+  <div class="bulk">
+    <button type="button" id="select-all-in-diff">Select all in-diff</button>
+    <button type="button" id="select-none">Clear</button>
+  </div>
+</header>
+
+<main id="board">
+{{SECTIONS}}
+</main>
+
+<footer>
+  <div id="summary">0 of {{TOTAL}} selected</div>
+  <button type="button" id="submit-btn">Submit · write JSON</button>
+</footer>
+
+<script>
+const PR = {{PR_JSON}};
+
+function rows() { return document.querySelectorAll('.row'); }
+
+function updateSummary() {
+  const all = rows();
+  let inline = 0, general = 0;
+  all.forEach(r => {
+    if (!r.querySelector('input[type=checkbox]').checked) return;
+    const ood = r.dataset.inDiff === 'false';
+    const decision = r.querySelector('select.ood-decision')?.value;
+    if (ood && decision === 'general') general++;
+    else if (!ood) inline++;
+  });
+  const selected = inline + general;
+  document.getElementById('summary').textContent =
+    `${selected} of ${all.length} selected · ${inline} inline · ${general} general`;
+  document.getElementById('submit-btn').disabled = selected === 0;
+}
+
+document.getElementById('select-all-in-diff').addEventListener('click', () => {
+  rows().forEach(r => {
+    if (r.dataset.inDiff === 'true') r.querySelector('input[type=checkbox]').checked = true;
+  });
+  updateSummary();
+});
+
+document.getElementById('select-none').addEventListener('click', () => {
+  rows().forEach(r => r.querySelector('input[type=checkbox]').checked = false);
+  updateSummary();
+});
+
+document.addEventListener('change', updateSummary);
+
+function ensureSeverityTag(body, severity) {
+  const tag = `**[${severity}]**`;
+  return body.startsWith(tag) ? body : `${tag} ${body.replace(/^\*\*\[[^\]]+\]\*\*\s*/, '')}`;
+}
+
+document.getElementById('submit-btn').addEventListener('click', async () => {
+  const comments = [];
+  const general_comments = [];
+  rows().forEach(r => {
+    if (!r.querySelector('input[type=checkbox]').checked) return;
+    const severity = r.dataset.severity;
+    const path = r.dataset.path;
+    const line = parseInt(r.dataset.line, 10);
+    const body = ensureSeverityTag(r.querySelector('textarea').value.trim(), severity);
+    if (r.dataset.inDiff === 'true') {
+      comments.push({ path, line, side: 'RIGHT', body });
+    } else {
+      const decision = r.querySelector('select.ood-decision').value;
+      if (decision === 'general') {
+        general_comments.push({ body: `\`${path}:${line}\` ${body}` });
+      }
+    }
+  });
+  const payload = { pr: PR, comments, general_comments, bundle: null };
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+  try {
+    const res = await fetch('/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    document.body.innerHTML = `
+      <header><strong>Done</strong></header>
+      <div class="status ok">Wrote ${data.path}. Run <code>/post-review --from ${data.path}</code></div>`;
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Submit · write JSON';
+    const status = document.createElement('div');
+    status.className = 'status err';
+    status.textContent = 'Submit failed: ' + err.message;
+    document.querySelector('footer').appendChild(status);
+  }
+});
+
+updateSummary();
+</script>
+</body>
+</html>

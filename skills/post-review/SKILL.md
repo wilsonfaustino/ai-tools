@@ -3,14 +3,35 @@ name: post-review
 description: >-
   Interactive triage and posting of PR review comments as a pending GitHub review.
   Iterates findings one by one with send/edit/skip actions, posts as pending review
-  via gh api. Use when the user says "post review", "post comments", invokes
-  /post-review, or after completing any PR review when there are comments to post.
+  via gh api. Also accepts a pre-triaged JSON via --from <path> from /review-board,
+  skipping the interactive loop. Use when the user says "post review", "post
+  comments", invokes /post-review, or after completing any PR review when there
+  are comments to post.
 ---
 
 # Post Review
 
 Triage review findings from conversation context and post approved comments as a
 pending GitHub review.
+
+## From JSON input
+
+If the user invokes `/post-review --from <path>` (or includes `--from <path>` in the trigger message), skip Parse Context, Noise Threshold, Diff Validation, and Interactive Loop. Use the JSON as the queued comment set directly.
+
+Steps:
+
+1. Validate `<path>` exists and parses as JSON. On failure, abort with the path and the first parse error.
+2. Validate required keys: `pr.number`, `pr.owner`, `pr.repo`, `pr.sha`, `comments` (array), `general_comments` (array). On missing keys, abort with the list of missing fields.
+3. Run `gh auth status`. If it fails, refuse.
+4. Do NOT run `gh pr view`. The JSON already carries the PR identity captured at triage time.
+5. Re-prepend the `**[severity]**` tag if any comment body has had it stripped. Severity is inferred from the tag if still present; otherwise keep the body as-is.
+6. If both `comments` and `general_comments` are empty, abort with `Nothing to post`. If only `comments` is non-empty, run Post Pending Review Step 1 using `comments` and `pr.sha` for `commit_id`, then skip Step 2. If only `general_comments` is non-empty, skip Step 1 entirely and run Step 2 for each entry. Otherwise run both.
+7. Step 2 is the per-entry general-comment POST for each item in `general_comments`.
+8. Run Step 3 Report. The Summary section runs unchanged.
+
+The `bundle` key is reserved for future noise-threshold support. Ignore it when null.
+
+The standard invocation (`/post-review` with no `--from`) is unchanged. The two paths share Post Pending Review, Error Handling, and Summary.
 
 ## Pre-flight
 

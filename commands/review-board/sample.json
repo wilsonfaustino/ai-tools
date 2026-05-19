@@ -1,0 +1,94 @@
+{
+  "pr": {
+    "number": 423,
+    "owner": "wilsonfaustino",
+    "repo": "ai-tools",
+    "sha": "a3f9b21e4c8d5f6a7b8c9d0e1f2a3b4c5d6e7f80"
+  },
+  "findings": [
+    {
+      "severity": "critical",
+      "path": "src/db.ts",
+      "line": 88,
+      "in_diff": true,
+      "body": "**[critical]** Query interpolates user input. Use parameterized queries."
+    },
+    {
+      "severity": "critical",
+      "path": "src/auth.ts",
+      "line": 42,
+      "in_diff": false,
+      "body": "**[critical]** Token expiry check uses `<` not `<=`. Off-by-one on expiry boundary."
+    },
+    {
+      "severity": "major",
+      "path": "src/profile.ts",
+      "line": 17,
+      "in_diff": true,
+      "body": "**[major]** Missing null check on `user.profile`."
+    },
+    {
+      "severity": "major",
+      "path": "src/api.ts",
+      "line": 104,
+      "in_diff": true,
+      "body": "**[major]** Unhandled rejection path swallows the error."
+    },
+    {
+      "severity": "major",
+      "path": "src/api.ts",
+      "line": 220,
+      "in_diff": true,
+      "body": "**[major]** Returns 200 on validation failure; should be 400."
+    },
+    {
+      "severity": "minor",
+      "path": "src/utils.ts",
+      "line": 9,
+      "in_diff": true,
+      "body": "**[minor]** Prefer `const` over `let`."
+    },
+    {
+      "severity": "minor",
+      "path": "src/utils.ts",
+      "line": 25,
+      "in_diff": true,
+      "body": "**[minor]** Extract magic number `86400` to a constant."
+    },
+    {
+      "severity": "minor",
+      "path": "src/handler.ts",
+      "line": 60,
+      "in_diff": true,
+      "body": "**[minor]** Function exceeds 50 lines; consider splitting."
+    },
+    {
+      "severity": "minor",
+      "path": "src/handler.ts",
+      "line": 99,
+      "in_diff": true,
+      "body": "**[minor]** Inline regex; precompile."
+    },
+    {
+      "severity": "nit",
+      "path": "src/index.ts",
+      "line": 3,
+      "in_diff": true,
+      "body": "**[nit]** Unused import `path`."
+    },
+    {
+      "severity": "nit",
+      "path": "src/index.ts",
+      "line": 7,
+      "in_diff": true,
+      "body": "**[nit]** Trailing whitespace."
+    },
+    {
+      "severity": "nit",
+      "path": "src/db.ts",
+      "line": 12,
+      "in_diff": true,
+      "body": "**[nit]** Typo in comment: `recieve` -> `receive`."
+    }
+  ]
+}
