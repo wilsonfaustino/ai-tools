@@ -25,8 +25,8 @@ Steps:
 3. Run `gh auth status`. If it fails, refuse.
 4. Do NOT run `gh pr view`. The JSON already carries the PR identity captured at triage time.
 5. Re-prepend the `**[severity]**` tag if any comment body has had it stripped. Severity is inferred from the tag if still present; otherwise keep the body as-is.
-6. Jump directly to "Post Pending Review" Step 1 using `comments` for the inline review payload and `pr.sha` for `commit_id`.
-7. Run Step 2 for each entry in `general_comments`.
+6. If both `comments` and `general_comments` are empty, abort with `Nothing to post`. If only `comments` is non-empty, run Post Pending Review Step 1 using `comments` and `pr.sha` for `commit_id`, then skip Step 2. If only `general_comments` is non-empty, skip Step 1 entirely and run Step 2 for each entry. Otherwise run both.
+7. Step 2 is the per-entry general-comment POST for each item in `general_comments`.
 8. Run Step 3 Report. The Summary section runs unchanged.
 
 The `bundle` key is reserved for future noise-threshold support. Ignore it when null.
