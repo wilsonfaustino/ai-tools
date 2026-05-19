@@ -128,14 +128,28 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
       <header><strong>Done</strong></header>
       <div class="status ok">Wrote ${data.path}. Run <code>/post-review --from ${data.path}</code></div>`;
   } catch (err) {
+    console.error('Submit failed:', err);
     btn.disabled = false;
     btn.textContent = 'Submit · write JSON';
-    const status = document.createElement('div');
-    status.className = 'status err';
-    status.textContent = 'Submit failed: ' + err.message;
-    document.querySelector('footer').appendChild(status);
+    let banner = document.getElementById('error-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'error-banner';
+      banner.className = 'status err';
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10;margin:0;border-radius:0;padding:12px 24px;text-align:center;';
+      document.body.prepend(banner);
+    }
+    banner.textContent = 'Submit failed: ' + err.message + ' (check browser console)';
   }
 });
+
+if (location.protocol === 'file:') {
+  const warn = document.createElement('div');
+  warn.className = 'status err';
+  warn.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10;margin:0;border-radius:0;padding:12px 24px;text-align:center;';
+  warn.textContent = 'This page is open via file:// — Submit will not work. Launch via /review-board so the local server is running.';
+  document.body.prepend(warn);
+}
 
 updateSummary();
 </script>
