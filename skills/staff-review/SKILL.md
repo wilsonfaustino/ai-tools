@@ -136,19 +136,57 @@ header and continue.
 
 ### Task 3: External Review Comments
 
-Fetch existing PR review comments via `gh api`. Run both calls:
+Fetch existing PR reviews and threads in one GraphQL call. This gives
+`isResolved` per thread for free so "Addressed?" can use real data instead of
+diff-guessing.
 
 ```bash
-# Top-level review comments (automated tools and human reviewers)
-gh api repos/{owner}/{repo}/pulls/<PR_NUMBER>/reviews \
-  --jq '[.[] | {id, body, state, user_login: .user.login, submitted_at}]'
-
-# Inline thread comments
-gh api repos/{owner}/{repo}/pulls/<PR_NUMBER>/comments \
-  --jq '[.[] | {id, path, line, body, user_login: .user.login, created_at}]'
+gh api graphql -f query='
+  query($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) {
+        reviews(first: 50) {
+          nodes {
+            databaseId
+            body
+            state
+            submittedAt
+            author { login }
+          }
+        }
+        reviewThreads(first: 100) {
+          nodes {
+            isResolved
+            isOutdated
+            path
+            line
+            comments(first: 20) {
+              nodes {
+                databaseId
+                body
+                createdAt
+                author { login }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+' -F owner='{owner}' -F repo='{repo}' -F number=<PR_NUMBER>
 ```
 
-Capture as `REVIEW_COMMENTS` (top-level) and `INLINE_COMMENTS` (thread).
+Map response into two arrays:
+
+- `REVIEW_COMMENTS` from `reviews.nodes` (top-level review summaries). Filter
+  out entries where `body` is empty (state-only reviews like APPROVE with no
+  body). Each entry: `{id: databaseId, body, state, user_login: author.login,
+  submitted_at: submittedAt}`.
+- `INLINE_COMMENTS` from `reviewThreads.nodes`. Each entry uses the thread's
+  first comment as the canonical anchor: `{id: comments.nodes[0].databaseId,
+  path, line, body: comments.nodes[0].body, user_login:
+  comments.nodes[0].author.login, created_at: comments.nodes[0].createdAt,
+  is_resolved: isResolved, is_outdated: isOutdated}`.
 
 If this fetch fails, set `EXTERNAL_FETCH_FAILED=true`, note
 `NOTE: External comment fetch failed; Sections 1 and 2 will be empty.` in
@@ -201,7 +239,7 @@ From `REVIEW_COMMENTS` and `INLINE_COMMENTS`, extract entries where
 `github-actions`, `sonarcloud`, or any handle ending in `[bot]`.
 
 Each entry: `{source, comment_body, file_path (if inline), line (if inline),
-submitted_at}`.
+submitted_at, is_resolved (inline only), is_outdated (inline only)}`.
 
 ### Bucket: human-external
 
@@ -209,7 +247,7 @@ From the same JSON, extract entries where `user_login` does NOT match bot
 patterns and is not the PR author.
 
 Each entry: `{source: "@<user_login>", comment_body, file_path, line,
-submitted_at}`.
+submitted_at, is_resolved (inline only), is_outdated (inline only)}`.
 
 ## Judge Step
 
@@ -302,8 +340,14 @@ With judge (`JUDGE_ENABLED=true`):
 `Judge` column: `kept` / `dropped: <reason>` / `downgraded from <X> to <Y>:
 <reason>`.
 
-"Addressed?" = `Yes` if the author already fixed it per the diff, `No`
-otherwise.
+"Addressed?" derivation for inline thread comments:
+- `is_resolved == true` -> `Yes (resolved)`
+- `is_outdated == true` -> `Yes (outdated)`
+- otherwise fall back to diff check: `Yes` if author already fixed per the
+  diff, `No` otherwise
+
+For top-level review comments (no thread): always use diff fallback. Show
+`Yes` if the diff resolves the concern, `No` otherwise.
 
 ---
 
