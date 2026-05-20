@@ -99,6 +99,54 @@ If no structured findings are found, prompt:
 > No review findings found in our conversation. Either run `/staff-review` first or
 > paste a list of issues with format: `severity -- issue description (file:line)`
 
+## Comment Format
+
+Every comment body MUST start with a bold severity tag, then space, then text:
+
+```
+**[critical]** Query interpolates user input. Use parameterized queries.
+**[major]** Missing null check on user.profile.
+**[minor]** Prefer const over let here.
+**[nit]** Unused import.
+```
+
+Severity vocabulary (lowercase): `critical`, `major`, `minor`, `nit`. Map any other
+labels from source findings to nearest match.
+
+When user picks `(e)dit`, preserve the tag. If their rewrite drops it, re-prepend
+before queuing.
+
+## Noise Threshold
+
+After Parse Context, count total findings.
+
+If total > 8: prompt user before entering loop.
+
+```
+12 findings total (2 critical, 3 major, 4 minor, 3 nit).
+Group 7 minor/nit into one PR-level summary comment to reduce noise? (y/n)
+```
+
+On `y`:
+- minor + nit items skip interactive loop, bundle into single general comment
+- critical + major still triaged one-by-one
+- Bundle posted via `issues/{number}/comments` after main review (Step 2 path)
+- In-diff minor/nit lose inline line context when bundled. Accepted tradeoff for noise reduction.
+
+Bundle body format:
+
+```
+**Minor suggestions and nits** (7)
+
+- `src/utils.ts:3` **[nit]** Unused import
+- `src/db.ts:42` **[minor]** Prefer const over let
+...
+```
+
+On `n`: normal flow, every item triaged.
+
+If total <= 8: skip prompt, normal flow.
+
 ## Diff Validation
 
 Use `DIFF_POSITIONS` from pre-flight. Validation is lazy: only check files
@@ -120,7 +168,7 @@ Present one comment at a time.
 ```
 [1/8] critical -- SQL injection in query builder
   src/db.ts:88
-  Suggested: "This query interpolates user input directly.
+  Suggested: "**[critical]** This query interpolates user input directly.
   Consider using parameterized queries to prevent injection."
 
   (s)end / (e)dit / s(k)ip / (a)ccept-remaining / (q)uit
@@ -150,6 +198,9 @@ Present one comment at a time.
 When `(a)ccept-remaining` is used, out-of-diff items in the remaining set are skipped
 (not auto-posted as general comments). Only in-diff items are auto-queued.
 
+If noise-threshold bundle is active, the loop only contains critical + major items.
+`(a)ccept-remaining` queues those normally. Bundle posts independently after Step 1.
+
 ## Post Pending Review
 
 ### Step 1: Create pending review with inline comments
@@ -172,7 +223,7 @@ Build the payload as `/tmp/pr-review-comments.json` from the queued comments. De
       "path": "src/db.ts",
       "line": 88,
       "side": "RIGHT",
-      "body": "This query interpolates user input directly. Consider using parameterized queries to prevent injection."
+      "body": "**[critical]** This query interpolates user input directly. Consider using parameterized queries to prevent injection."
     }
   ]
 }
@@ -198,6 +249,7 @@ gh api repos/{owner}/{repo}/issues/{number}/comments \
 ### Step 3: Report
 
 > Posted N inline comments as pending review. M general comments posted separately.
+> K minor/nit items bundled in PR-level summary (when noise threshold triggered).
 
 ## Summary
 
