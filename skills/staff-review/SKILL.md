@@ -3,8 +3,9 @@ name: staff-review
 description: >-
   Staff-engineer-level PR review that fans out to pr-review-toolkit and
   pr-review-local in parallel, audits automated and human reviewer comments,
-  runs a judge layer to filter false positives, and presents structured
-  findings by severity. Use when the user says "staff review", invokes
+  runs a judge layer that filters false positives, dedups overlapping
+  findings, and scores confidence, then presents structured findings by
+  severity. Use when the user says "staff review", invokes
   /staff-review, or wants a thorough review that also validates existing
   reviewer comments. Pass --no-judge to skip the judge layer. Do not use for
   simple code reviews or when the user explicitly asks for pr-review-toolkit
@@ -249,6 +250,19 @@ patterns and is not the PR author.
 Each entry: `{source: "@<user_login>", comment_body, file_path, line,
 submitted_at, is_resolved (inline only), is_outdated (inline only)}`.
 
+### Assign stable IDs and source_count
+
+After all four buckets are parsed, flatten into one finding list and assign a
+**stable id** by bucket prefix and ordinal: toolkit -> `t1, t2, ...`; local
+-> `l1, l2, ...`; automated-external -> `a1, ...`; human-external -> `h1, ...`.
+The id is the judge's handle (replaces positional index, which breaks if the
+judge renumbers or skips).
+
+Then compute `source_count` (pre-dedup hint): normalize `file_line` to
+`path:line` (strip `L`, drop column), group on that key; `source_count` =
+distinct sources in the group. No `file_line` -> `1`. Cheap same-line
+heuristic; the judge refines it via merges.
+
 ## Judge Step
 
 Skip this entire section if `JUDGE_ENABLED=false`.
@@ -272,44 +286,80 @@ Build a minimal diff for the judge instead of the full `gh pr diff`:
    that as `JUDGE_DIFF`.
 3. If the set is empty (no file refs), fall back to `gh pr diff` whole.
 
-Spawn a single subagent with fresh context (no prior conversation). Pass:
+### Spawn
+
+Spawn one subagent with fresh context. The judge **has Read access** and
+may open any referenced file to verify a claim; the sliced diff shows only
+changed hunks, but the full file often holds the context that confirms or
+refutes a finding (helper elsewhere, existing test, upstream guard). Pass:
+
 1. `JUDGE_DIFF` (sliced PR diff per above)
-2. All findings from all four buckets, formatted as a numbered list with
-   `source`, `severity`, `file_line`, and `issue` fields
+2. All findings from all four buckets, formatted as a list. Each line:
+   `<id> | source=<source> | severity=<sev> | source_count=<n> |
+   file_line=<file:line> | issue=<text>`
 
 Subagent instructions:
 
-> You are an auditor reviewing a list of PR findings for false positives.
-> For each finding, return exactly one of:
+> You are an auditor reviewing PR findings for false positives and duplicates.
 >
-> - `keep` -- the finding is valid and worth the author's attention
+> You MAY use Read to open any referenced file; verify against the full file
+> before judging "wrong" or "already addressed".
+>
+> Each finding has a stable `id` (e.g. `t3`, `l1`). Findings from different
+> sources sometimes describe the SAME issue; group those.
+>
+> `source_count` = independent sources that raised it. Higher = stronger
+> signal; raise the bar before dropping a high-count finding.
+>
+> Reason BEFORE you decide: write `reason` first, then let it drive
+> `decision`. Do not rationalize a verdict after the fact.
+>
+> For each finding decide one of:
+> - `keep` -- valid and worth the author's attention
 > - `downgrade <new_severity>` -- valid but less severe than labeled
-> - `drop` -- clearly wrong, already addressed in the diff, or not actionable
+> - `drop` -- clearly wrong, already addressed, or not actionable
 >
-> Also provide a 1-line reason for each decision.
+> `confidence` is your certainty in the decision, 0.0 to 1.0. Drop only if
+> clearly wrong or already addressed; keep anything ambiguous but mark it with
+> low confidence.
 >
-> Default threshold: drop only if clearly wrong or already addressed; keep
-> anything ambiguous.
->
-> Return a JSON array. Each element:
+> Return a single JSON object (reason key first in each decision):
 > {
->   "finding_index": <number>,
->   "decision": "keep" | "drop" | "downgrade <new_severity>",
->   "reason": "<one-line explanation>"
+>   "decisions": [
+>     {"id": "t3", "reason": "<one line>", "decision": "keep",
+>      "confidence": 0.9}
+>   ],
+>   "merges": [["t3", "l1", "a2"]]
 > }
+>
+> `merges`: arrays of ids describing the same issue; `[]` if none. Not every id
+> need appear.
 
-Capture output as `JUDGE_OUTPUT`. Parse the JSON array.
+Capture output as `JUDGE_OUTPUT`. Parse the JSON object.
 
-If the subagent fails or returns malformed JSON: fall back to
-`JUDGE_ENABLED=false` behavior. Prepend
+**Per-element salvage.** Parse `decisions` element by element. A malformed
+element does not abort the judge: treat its id as `keep`, `confidence: null`.
+Fall back to full `JUDGE_ENABLED=false` only if the response is not valid JSON
+or `decisions` is empty; then prepend
 `NOTE: Judge step failed; judge column omitted.` to output header.
 
-Apply judge decisions to each finding before rendering:
-- `keep`: render with judge value `kept`
-- `downgrade <X>`: update `severity` to `<X>`, judge value `downgraded from
-  <old> to <X>: <reason>`
-- `drop`: remove from main sections; collect in `DROPPED_FINDINGS` list with
-  `{source, issue_title, reason}`
+**Apply merges first.** For each group in `merges`:
+1. Canonical = highest severity in group (ties: lowest id). Apply its decision
+   normally.
+2. Combine all members' `source` into the canonical's `Source` cell (e.g.
+   `toolkit:code-reviewer, local:security, @alice`); set `source_count` to
+   group size.
+3. Remove non-canonical members from all sections (folded in, not dropped); do
+   not list them under Section 4.
+
+**Apply decisions** to each surviving finding:
+- `keep`: judge value `kept`
+- `downgrade <X>`: set `severity` to `<X>`, judge value `downgraded from <old>
+  to <X>: <reason>`
+- `drop`: remove from main sections; add to `DROPPED_FINDINGS`
+
+**Confidence rendering.** `confidence < 0.5` appends ` (low confidence)` to
+the Judge cell; `null` confidence (salvaged) appends ` (unscored)`.
 
 ## Output Format
 
@@ -338,7 +388,9 @@ With judge (`JUDGE_ENABLED=true`):
 |---|---------|--------|-----|-------|------------|
 
 `Judge` column: `kept` / `dropped: <reason>` / `downgraded from <X> to <Y>:
-<reason>`.
+<reason>`, with ` (low confidence)` or ` (unscored)` appended per the
+confidence rule. A merged finding shows all contributing sources in its
+`Source`/tool cell.
 
 "Addressed?" derivation for inline thread comments:
 - `is_resolved == true` -> `Yes (resolved)`
@@ -378,7 +430,8 @@ With judge:
 `toolkit:type-design-analyzer`, `toolkit:pr-test-analyzer`,
 `toolkit:comment-analyzer`, `toolkit:code-simplifier`, `local:security`,
 `local:regression`, `local:performance`, `New` (if the finding originated
-from inline analysis rather than a named subagent).
+from inline analysis rather than a named subagent). A merged finding lists all
+contributing sources comma-separated.
 
 "Addressed?" = `Yes` if the PR diff already resolves the finding.
 
@@ -424,7 +477,8 @@ Wait for the user to respond before taking any further action.
 | pr-review-local size gate abort | Note skip reason in header, continue |
 | pr-review-local task fails | Note failure in header, continue |
 | External comment fetch fails | Note in header, Sections 1+2 show empty state |
-| Judge subagent fails or bad JSON | Note in header, fall back to --no-judge behavior |
+| Judge: one malformed decision element | Salvage rest; treat that id as `keep` (unscored) |
+| Judge: non-JSON response or empty decisions | Note in header, fall back to --no-judge behavior |
 | PR has no diff | Inform user and exit |
 
 ---
