@@ -9,6 +9,18 @@ GitHub commit URL. Read-only: never modify code, stage, commit, push, or run
 
 GitHub only.
 
+## Constants
+
+Org-specific Jira field for the optional posting step ("Post to Jira" below).
+The `customId` is per-org; rediscover it by fetching field metadata
+(`getJiraIssueTypeMetaWithFields`) and grepping for `"Bug Introduction Commit"`.
+
+- `JIRA_SITE` = `digitial-product-engineering.atlassian.net` (hostname, used
+  directly as `cloudId`; preserved verbatim, including the spelling, since it is
+  the real host)
+- `BUG_INTRO_FIELD` = `customfield_12040` ("Bug Introduction Commit",
+  `textfield`, plain single-line **string**, no ADF envelope)
+
 ## Arguments
 
 Parse `$ARGUMENTS` (whitespace-split).
@@ -147,7 +159,8 @@ Qualitative. Always pair with the one-line reason.
 
 ## Output
 
-Print this block only. No side effects, no posting, no clipboard.
+Print this block. Git stays read-only throughout; the only optional side effect
+is the Jira post below, and only on an explicit `y`.
 
 ```
 Bug intro: <short-sha> "<commit subject>"
@@ -164,6 +177,90 @@ Confidence: <level> - <why no single commit suffices>
 - <short-sha> "<subject>" -> https://github.com/<owner>/<repo>/commit/<full-sha>
 ```
 
+## Post to Jira (optional)
+
+After printing the output block, optionally write the URL to the ticket's
+`BUG_INTRO_FIELD`. This step never touches git and is entirely skippable.
+
+### Gate
+
+Only offer to post when a **ticket key** is known:
+
+- the fix identifier was itself a ticket key (matched `^[A-Z][A-Z0-9]+-\d+$`), or
+- a ticket key surfaced while resolving the fix (e.g. the fix commit subject or
+  PR title contains a `^[A-Z][A-Z0-9]+-\d+$` token).
+
+If no ticket key is known (a PR/SHA/branch run with no ticket anywhere), stop
+here: print-only, no prompt.
+
+### Pre-flight (posting only)
+
+Load the Atlassian MCP tool schemas (deferred):
+
+```
+ToolSearch select:mcp__claude_ai_Atlassian__getJiraIssue,mcp__claude_ai_Atlassian__editJiraIssue
+```
+
+If the tools are not present after `ToolSearch`, skip posting gracefully and say
+so: `Atlassian MCP not connected; skipping Jira post.` The core command output
+above is already complete and unaffected.
+
+### Prompt
+
+Always require an explicit `y`. Single URL:
+
+```
+Post URL to <KEY> Bug Introduction Commit field? (y/n)
+```
+
+Combination case (field is single-line): the value is every full-SHA URL joined
+by a single space. Say so before posting:
+
+```
+Field is single-line; will post <N> URLs space-joined.
+Post to <KEY> Bug Introduction Commit field? (y/n)
+```
+
+Any answer other than `y` -> done, no post.
+
+### Overwrite guard
+
+On `y`, resolve `cloudId` = `JIRA_SITE` (pass the hostname directly). Only if a
+call fails with that value, fall back to `getAccessibleAtlassianResources` and
+use the first result's `id`.
+
+Read the current value: `getJiraIssue` with `cloudId`, `issueIdOrKey: <KEY>`,
+`fields: ["customfield_12040"]`.
+
+- empty/missing -> post (the `y` above suffices, no extra prompt).
+- non-empty, **same** value as what we would post -> report
+  `Already set on <KEY>.` and stop. No write.
+- non-empty, **different** value -> show the existing value and prompt
+  `replace / abort`. `abort` exits with no write.
+
+### Post
+
+Always post the **full** 40-char SHA URL(s), never short. Plain string, no ADF:
+
+```
+editJiraIssue
+  cloudId: <JIRA_SITE or fallback id>
+  issueIdOrKey: <KEY>
+  fields: {"customfield_12040": "<url>"}     # combination: "<url> <url> ..."
+```
+
+On success: `Posted bug-intro URL to <KEY>.`
+
+### On failure
+
+No auto-retry. Print the field key and URL(s) so they can be pasted manually:
+
+```
+Jira post failed: <error summary>
+Paste into <KEY> field customfield_12040 ("Bug Introduction Commit"):
+<url>            # combination: <url> <url> ...
+```
+
 ## Never do
 
 - Modify code, stage, commit, push.
@@ -171,3 +268,7 @@ Confidence: <level> - <why no single commit suffices>
 - Emit a short SHA in a URL.
 - Present multiple URLs except in the genuine combination case.
 - Guess past the deterministic tiebreak without lowering confidence.
+- Post to Jira without an explicit `y`, or when no ticket key is known.
+- Edit any Jira field other than `customfield_12040`.
+- Transition the ticket, change its status, or add a comment/worklog.
+- Overwrite a non-empty `customfield_12040` without an explicit `replace`.
