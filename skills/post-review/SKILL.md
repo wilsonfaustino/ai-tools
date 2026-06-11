@@ -27,7 +27,7 @@ Steps:
 5. Re-prepend the `**[severity]**` tag if any comment body has had it stripped. Severity is inferred from the tag if still present; otherwise keep the body as-is.
 6. If both `comments` and `general_comments` are empty, abort with `Nothing to post`. If only `comments` is non-empty, run Post Pending Review Step 1 using `comments` and `pr.sha` for `commit_id`, then skip Step 2. If only `general_comments` is non-empty, skip Step 1 entirely and run Step 2 for each entry. Otherwise run both.
 7. Step 2 is the per-entry general-comment POST for each item in `general_comments`.
-8. Run Step 3 Report. The Summary section runs unchanged.
+8. Run Step 3 Report. The Summary and Verdict sections run unchanged.
 
 The `bundle` key is reserved for future noise-threshold support. Ignore it when null.
 
@@ -210,8 +210,11 @@ Use a single API call to create the review with all queued inline comments:
 ```bash
 gh api repos/{owner}/{repo}/pulls/{number}/reviews \
   --method POST \
-  --input comments.json
+  --input comments.json \
+  --jq '.id'
 ```
+
+Capture the returned review id as `REVIEW_ID`. It is required by the Verdict step.
 
 Build the payload as `/tmp/pr-review-comments.json` from the queued comments. Delete the file after the API call completes:
 
@@ -264,7 +267,37 @@ Example:
 > Hey! Left a few comments, mostly around security and error handling.
 > The main one is the query in db.ts, worth a look. Rest are minor.
 
-Present the summary but do NOT post it.
+Present the summary, then run the Verdict step. Do not post the summary outside
+of a user-selected verdict submission.
+
+## Verdict
+
+After presenting the summary, ask the user how to finish via the AskUserQuestion
+tool with exactly these options:
+
+1. Post summary and submit review as COMMENT
+2. Post summary and submit review as APPROVE
+3. Post summary and submit review as REQUEST CHANGES
+4. User will deal in GitHub UI (leave review pending, do not post summary)
+
+Map options 1-3 to the GitHub event values `COMMENT`, `APPROVE`, `REQUEST_CHANGES`
+and submit the pending review with the summary as body:
+
+```bash
+gh api repos/{owner}/{repo}/pulls/{number}/reviews/{REVIEW_ID}/events \
+  --method POST \
+  -f event=COMMENT \
+  -f body="<summary text>"
+```
+
+- `REVIEW_ID` comes from Step 1. If Step 1 was skipped (only general comments
+  posted, no pending review exists), create and submit in one call instead:
+  `gh api repos/{owner}/{repo}/pulls/{number}/reviews --method POST -f event=<EVENT> -f body="<summary text>"`
+- On option 4: report the pending review URL and exit. The summary stays
+  unposted for the user to copy.
+- GitHub rejects `APPROVE` and `REQUEST_CHANGES` on your own PR (HTTP 422).
+  On that error, inform the user and fall back to option 4 behavior. Do not
+  retry with a different event without asking.
 
 ## Error Handling
 
@@ -286,8 +319,8 @@ If `gh api` returns 403 or 429: pause and inform user. Do not retry automaticall
 
 ## Never do
 
-- Submit a review verdict (approve/request changes). User does this manually.
-- Post the summary comment. User copies it.
+- Submit a review verdict without the user explicitly selecting it in the Verdict step.
+- Post the summary other than as the body of a user-selected verdict submission.
 - Use `--force` or any destructive git/gh command
 - Use em-dashes in generated text
 - Modify any code or files
