@@ -16,6 +16,7 @@ Personal Claude Code skills. Developed here, installed locally via `npx skills a
 | [wrap-up](skills/wrap-up/) | End-of-session command that updates memory and writes Obsidian session notes |
 | [todo](skills/todo/) | Quick-capture project todos with priority during work sessions |
 | [init-team](skills/init-team/) | Scaffold agent team infrastructure (Helen + Jess, SQLite state, inbox/outbox) |
+| [validate-bug-fix](skills/validate-bug-fix/) | Drive Playwright against a stage env to prove a bug fix holds, capturing video/network evidence and posting a Jira verification comment |
 
 ## Commands
 
