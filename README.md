@@ -18,6 +18,7 @@ Personal Claude Code skills. Developed here, installed locally via `npx skills a
 | [init-team](skills/init-team/) | Scaffold agent team infrastructure (Helen + Jess, SQLite state, inbox/outbox) |
 | [validate-bug-fix](skills/validate-bug-fix/) | Drive Playwright against a stage env to prove a bug fix holds, capturing video/network evidence and posting a Jira verification comment |
 | [investigate-with-jira](skills/investigate-with-jira/) | Fetch a Jira bug ticket, fan out parallel read-only Sonnet agents (serena symbol search) across the codebase, and synthesize a ranked root-cause report. Investigation only |
+| [migrate-antd-v6](skills/migrate-antd-v6/) | Migrate one file/route off the deprecated antdV3 import to antd v6, proving no regression with before/after Playwright screenshots of the real route before committing. Reusable, stops at ready-to-commit |
 
 ## Commands
 
