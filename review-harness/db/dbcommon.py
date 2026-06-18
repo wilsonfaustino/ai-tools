@@ -25,4 +25,5 @@ def connect():
     conn.executescript(SCHEMA_PATH.read_text())
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA busy_timeout=5000")
     return conn
