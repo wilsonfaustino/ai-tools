@@ -150,11 +150,15 @@ in the plan; SessionStart is the fallback if Skill-name matching proves awkward.
 
 ## Running the app
 
-1. `bash review-harness/install.sh` (links db + hooks, prints next steps).
+1. `bash review-harness/install.sh` (links db, hooks, and app into `~/.claude/review-harness/`, prints next steps).
 2. `npm install --prefix review-harness/app` then `npm run build --prefix review-harness/app`.
 3. Merge `review-harness/hooks/settings-snippet.json` into `~/.claude/settings.json` so the app self-starts when you run a review skill. Or start it manually: `node review-harness/app/server.js` (http://127.0.0.1:7777).
 
 Flow: staff-review writes findings to the DB, the app lists them and lets you triage (decision + edited body), then `/post-review --from-db` posts the decided ones.
+
+### Node version
+
+`better-sqlite3` is a native module whose ABI is tied to the Node major version. The app is pinned to Node 24: `ensure-up.sh` launches the server via `fnm exec --using=24`, and the binary must be built under the same major. If you change Node major, rebuild and update the pin: `fnm exec --using=<major> -- npm rebuild better-sqlite3 --prefix review-harness/app`, then change the `--using` value in `review-harness/hooks/ensure-up.sh`.
 
 ## File layout
 
