@@ -140,10 +140,21 @@ in the plan; SessionStart is the fallback if Skill-name matching proves awkward.
 
 - **Phase 1 — spine, no UI.** schema.sql + WAL + the Python db helpers + wire
   `staff-review`, `post-review`, `gh-reply-comments`. Delivers relief for
-  lost-track, slow-reply, and tool-juggling.
-- **Phase 2 — UI.** Node+React app + `ensure-up.sh` hook + `review-flow`
-  repoint. Delivers relief for editing-UX and clunky-launch. Supersedes
-  `commands/review-board/` (flagged for removal, not auto-deleted).
+  lost-track, slow-reply, and tool-juggling. **Delivered.**
+- **Phase 2 — UI.** Node+React app + `ensure-up.sh` hook + `get_decided.py` +
+  `post-review --from-db`. Delivers relief for editing-UX and clunky-launch.
+  **Delivered.**
+- **Phase 3 — cleanup (remaining).** `gh_comment_id` backfill in
+  `gh-reply-comments` (match live PR comments by path+line, store the id).
+  Deprecate and remove `commands/review-board/` once the app fully replaces it.
+
+## Running the app
+
+1. `bash review-harness/install.sh` (links db + hooks, prints next steps).
+2. `npm install --prefix review-harness/app` then `npm run build --prefix review-harness/app`.
+3. Merge `review-harness/hooks/settings-snippet.json` into `~/.claude/settings.json` so the app self-starts when you run a review skill. Or start it manually: `node review-harness/app/server.js` (http://127.0.0.1:7777).
+
+Flow: staff-review writes findings to the DB, the app lists them and lets you triage (decision + edited body), then `/post-review --from-db` posts the decided ones.
 
 ## File layout
 
