@@ -475,7 +475,7 @@ one-line warning and continue. Do not abort the review.
 Build a JSON payload from the PR identity and the Section 3 findings, then:
 
 ```bash
-python3 <ai-tools>/review-harness/db/insert_review.py <<'JSON'
+python3 ~/.claude/review-harness/db/insert_review.py <<'JSON'
 {
   "pr": {"number": <n>, "owner": "<owner>", "repo": "<repo>",
          "branch": "<branch>", "title": "<title>", "head_sha": "<sha>"},
@@ -487,7 +487,8 @@ python3 <ai-tools>/review-harness/db/insert_review.py <<'JSON'
 JSON
 ```
 
-`<ai-tools>` is the absolute path to the installed ai-tools checkout. Capture
+The script lives at `~/.claude/review-harness/db/insert_review.py`, installed
+beside the database at `~/.claude/review-harness/reviews.db`. Capture
 `review_id` from stdout and report it: `Persisted as review <review_id>.`
 If the script exits non-zero, print `review-harness: persist skipped (<stderr>)`
 and continue.
