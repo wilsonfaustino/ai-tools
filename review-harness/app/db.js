@@ -16,6 +16,7 @@ export function openDb() {
   const handle = new Database(dbPath())
   handle.pragma('journal_mode = WAL')
   handle.pragma('foreign_keys = ON')
+  handle.pragma('busy_timeout = 5000')
   handle.exec(readFileSync(schemaPath, 'utf8'))
   return handle
 }
