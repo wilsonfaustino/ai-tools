@@ -59,15 +59,23 @@ JSON
    `**[severity]**` tag if missing.
 4. Run Post Pending Review Step 1 (inline) and Step 2 (general) exactly as the
    standard path does, using `headRefOid` for `commit_id`.
-5. After Step 1 succeeds, record posted state (best-effort, non-fatal):
+5. After Step 1 succeeds, record inline findings as posted (best-effort, non-fatal):
 
 ```bash
 python3 ~/.claude/review-harness/db/mark_posted.py <<JSON
-{"review_id": <review.id>, "posted": [{"finding_id": <id1>}, {"finding_id": <id2>}]}
+{"review_id": <review.id>, "posted": [{"finding_id": <inline_id1>}, {"finding_id": <inline_id2>}]}
 JSON
 ```
 
-6. Run Step 3 Report, then Summary and Verdict unchanged.
+6. After Step 2 completes, record general findings as posted (best-effort, non-fatal):
+
+```bash
+python3 ~/.claude/review-harness/db/mark_posted.py <<JSON
+{"review_id": <review.id>, "posted": [{"finding_id": <general_id1>}, {"finding_id": <general_id2>}]}
+JSON
+```
+
+7. Run Step 3 Report, then Summary and Verdict unchanged.
 
 The standard invocation and `--from <path>` are unchanged. `--from-db` shares
 Post Pending Review, Error Handling, Summary, and Verdict.
