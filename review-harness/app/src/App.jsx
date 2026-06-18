@@ -86,7 +86,7 @@ export default function App() {
 
   if (error) return <div className="error">{error}</div>
   if (detail) {
-    return <Triage detail={detail} onBack={() => setDetail(null)}
+    return <Triage key={detail.review.id} detail={detail} onBack={() => setDetail(null)}
       onSaved={() => { setDetail(null); loadReviews() }} />
   }
   return <Dashboard reviews={reviews} onOpen={open} />
