@@ -1,0 +1,76 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import {
+  stripSeverityPrefix, parseBody, filterFindings, groupBySeverity, counts,
+  SEVERITY_ORDER, ACTION_ORDER,
+} from '../src/triage-model.js'
+
+test('SEVERITY_ORDER and ACTION_ORDER are the agreed taxonomies', () => {
+  assert.deepEqual(SEVERITY_ORDER, ['critical', 'warning', 'suggestion', 'nit'])
+  assert.deepEqual(ACTION_ORDER, ['pending', 'inline', 'general', 'skip'])
+})
+
+test('stripSeverityPrefix removes a leading **[severity]** marker only', () => {
+  assert.equal(stripSeverityPrefix('**[critical]** Routing bug'), 'Routing bug')
+  assert.equal(stripSeverityPrefix('No prefix here'), 'No prefix here')
+  assert.equal(stripSeverityPrefix('text **[warning]** mid'), 'text **[warning]** mid')
+})
+
+test('parseBody tokenizes code and bold spans after stripping prefix', () => {
+  assert.deepEqual(
+    parseBody('**[warning]** calls `useHook()` and **bold** text'),
+    [
+      { kind: 'text', text: 'calls ' },
+      { kind: 'code', text: 'useHook()' },
+      { kind: 'text', text: ' and ' },
+      { kind: 'bold', text: 'bold' },
+      { kind: 'text', text: ' text' },
+    ],
+  )
+})
+
+test('parseBody returns a single text token when there is no markup', () => {
+  assert.deepEqual(parseBody('plain sentence'), [{ kind: 'text', text: 'plain sentence' }])
+})
+
+test('filterFindings filters by severity and pendingOnly', () => {
+  const rows = [
+    { id: 1, severity: 'critical', decision: 'inline' },
+    { id: 2, severity: 'nit', decision: 'pending' },
+    { id: 3, severity: 'nit', decision: 'skip' },
+  ]
+  assert.deepEqual(filterFindings(rows, { severity: 'nit' }).map((f) => f.id), [2, 3])
+  assert.deepEqual(filterFindings(rows, { pendingOnly: true }).map((f) => f.id), [2])
+  assert.deepEqual(filterFindings(rows, { severity: 'all' }).map((f) => f.id), [1, 2, 3])
+  assert.deepEqual(filterFindings(rows, {}).map((f) => f.id), [1, 2, 3])
+})
+
+test('groupBySeverity orders groups and drops empty severities', () => {
+  const rows = [
+    { id: 1, severity: 'nit' }, { id: 2, severity: 'critical' }, { id: 3, severity: 'nit' },
+  ]
+  const groups = groupBySeverity(rows)
+  assert.deepEqual(groups.map((g) => g.severity), ['critical', 'nit'])
+  assert.deepEqual(groups[1].findings.map((f) => f.id), [1, 3])
+  assert.equal(groups[0].label, 'Critical')
+})
+
+test('counts totals findings, pending, triaged, and per-bucket tallies', () => {
+  const rows = [
+    { severity: 'critical', decision: 'inline' },
+    { severity: 'nit', decision: 'pending' },
+    { severity: 'nit', decision: 'skip' },
+  ]
+  const c = counts(rows)
+  assert.equal(c.total, 3)
+  assert.equal(c.pending, 1)
+  assert.equal(c.triaged, 2)
+  assert.equal(c.bySeverity.nit, 2)
+  assert.equal(c.byAction.skip, 1)
+  assert.equal(c.byAction.general, 0)
+})
+
+test('counts treats a missing decision as pending', () => {
+  const c = counts([{ severity: 'nit' }])
+  assert.equal(c.pending, 1)
+})
