@@ -105,5 +105,51 @@ class TestInsertReview(DbTestCase):
         self.assertEqual(count, 2)
 
 
+class TestDecisionsAndPosted(DbTestCase):
+    def _seed(self):
+        out = run_script("insert_review.py",
+                         {"pr": SAMPLE_PR, "findings": SAMPLE_FINDINGS},
+                         self.db_path)
+        return out["review_id"], out["finding_ids"]
+
+    def test_set_decisions_updates_rows(self):
+        _, finding_ids = self._seed()
+        out = run_script(
+            "set_decisions.py",
+            {"decisions": [{"finding_id": finding_ids[0], "decision": "inline"},
+                           {"finding_id": finding_ids[1], "decision": "skip"}]},
+            self.db_path,
+        )
+        self.assertEqual(out["updated"], 2)
+
+    def test_set_decisions_rejects_invalid(self):
+        _, finding_ids = self._seed()
+        with self.assertRaises(AssertionError):
+            run_script(
+                "set_decisions.py",
+                {"decisions": [{"finding_id": finding_ids[0], "decision": "bogus"}]},
+                self.db_path,
+            )
+
+    def test_mark_posted_sets_ids_and_status(self):
+        review_id, finding_ids = self._seed()
+        run_script(
+            "mark_posted.py",
+            {"review_id": review_id,
+             "posted": [{"finding_id": finding_ids[0], "gh_comment_id": 555}]},
+            self.db_path,
+        )
+        conn = self._connect()
+        finding = conn.execute(
+            "SELECT gh_comment_id, posted_at FROM findings WHERE id=?",
+            (finding_ids[0],)).fetchone()
+        status = conn.execute("SELECT status FROM reviews WHERE id=?",
+                              (review_id,)).fetchone()["status"]
+        conn.close()
+        self.assertEqual(finding["gh_comment_id"], 555)
+        self.assertIsNotNone(finding["posted_at"])
+        self.assertEqual(status, "posted")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
