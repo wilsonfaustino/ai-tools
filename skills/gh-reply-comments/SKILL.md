@@ -85,6 +85,20 @@ For each unresolved thread:
 - If `rootAuthor == viewer.login`: mode = `reviewer-follow-up`
 - Else: mode = `author-reply`
 
+## Load baseline from review-harness (reviewer-follow-up only)
+
+Before classifying reviewer-follow-up threads, load the stored baseline for this PR:
+
+```bash
+python3 ~/.claude/review-harness/db/get_review.py <<JSON
+{"owner": "{owner}", "repo": "{repo}", "pr_number": {number}}
+JSON
+```
+
+If `review` is non-null, use `posted_findings` (matched by `path` and `line`) as the authoritative set of comments you posted. Diff the current PR commits against `review.head_sha` to decide whether each finding was addressed. If `review` is null, fall back to the existing live-PR derivation.
+
+If the script fails for any reason, print a one-line warning and continue with the live-PR derivation. Never block the reply flow on a DB failure.
+
 ## Mode Confirmation (mandatory)
 
 **Before any drafts, edits, or posts**, show this summary and wait for confirmation:
@@ -213,6 +227,21 @@ gh api repos/{owner}/{repo}/pulls/{number}/comments \
 
 This skill does not resolve threads. Resolution is the thread starter's call.
 
+## Write addressed state back (reviewer-follow-up only)
+
+After the addressed/not decision is made for each reviewer-follow-up thread, persist the result (best-effort, non-fatal):
+
+```bash
+python3 ~/.claude/review-harness/db/mark_addressed.py <<JSON
+{"review_id": <review_id>,
+ "addressed": [{"finding_id": <id1>, "addressed_status": "addressed",
+                "addressed_commit_sha": "<sha>"},
+               {"finding_id": <id2>, "addressed_status": "open"}]}
+JSON
+```
+
+Report the returned `review_status` to the user (for example: `Review now: addressed.`). If the script fails, print a one-line warning and continue. Never block replies on this call.
+
 ## Error Handling
 
 ### Never do
@@ -223,6 +252,7 @@ This skill does not resolve threads. Resolution is the thread starter's call.
 - Create a pending review (send the user to `post-review` instead)
 - Use `--force` or any destructive git/gh command
 - Use em-dashes in generated reply text
+- Block the reply flow on review-harness DB calls (writes to the local SQLite DB are allowed but always best-effort)
 
 ### API failures
 
