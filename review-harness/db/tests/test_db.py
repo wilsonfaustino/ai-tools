@@ -203,5 +203,44 @@ class TestAddressedAndGet(DbTestCase):
         self.assertEqual(out["posted_findings"], [])
 
 
+class TestGetDecided(DbTestCase):
+    def _seed_decided(self):
+        out = run_script("insert_review.py",
+                         {"pr": SAMPLE_PR, "findings": SAMPLE_FINDINGS},
+                         self.db_path)
+        run_script("set_decisions.py",
+                   {"decisions": [{"finding_id": out["finding_ids"][0], "decision": "inline"},
+                                  {"finding_id": out["finding_ids"][1], "decision": "skip"}]},
+                   self.db_path)
+        return out["review_id"], out["finding_ids"]
+
+    def test_returns_only_decided_unposted(self):
+        self._seed_decided()
+        out = run_script("get_decided.py",
+                         {"owner": SAMPLE_PR["owner"], "repo": SAMPLE_PR["repo"],
+                          "pr_number": SAMPLE_PR["number"]},
+                         self.db_path)
+        self.assertEqual(len(out["decided"]), 1)
+        self.assertEqual(out["decided"][0]["decision"], "inline")
+
+    def test_excludes_posted(self):
+        review_id, finding_ids = self._seed_decided()
+        run_script("mark_posted.py",
+                   {"review_id": review_id, "posted": [{"finding_id": finding_ids[0]}]},
+                   self.db_path)
+        out = run_script("get_decided.py",
+                         {"owner": SAMPLE_PR["owner"], "repo": SAMPLE_PR["repo"],
+                          "pr_number": SAMPLE_PR["number"]},
+                         self.db_path)
+        self.assertEqual(out["decided"], [])
+
+    def test_absent_review(self):
+        out = run_script("get_decided.py",
+                         {"owner": "nobody", "repo": "x", "pr_number": 1},
+                         self.db_path)
+        self.assertIsNone(out["review"])
+        self.assertEqual(out["decided"], [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

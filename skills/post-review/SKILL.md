@@ -4,9 +4,9 @@ description: >-
   Interactive triage and posting of PR review comments as a pending GitHub review.
   Iterates findings one by one with send/edit/skip actions, posts as pending review
   via gh api. Also accepts a pre-triaged JSON via --from <path> from /review-board,
-  skipping the interactive loop. Use when the user says "post review", "post
-  comments", invokes /post-review, or after completing any PR review when there
-  are comments to post.
+  or decided findings from the review-harness DB via --from-db, both skipping the
+  interactive loop. Use when the user says "post review", "post comments", invokes
+  /post-review, or after completing any PR review when there are comments to post.
 ---
 
 # Post Review
@@ -31,7 +31,46 @@ Steps:
 
 The `bundle` key is reserved for future noise-threshold support. Ignore it when null.
 
-The standard invocation (`/post-review` with no `--from`) is unchanged. The two paths share Post Pending Review, Error Handling, and Summary.
+The standard invocation (`/post-review` with no `--from`) is unchanged. The three paths (default, `--from`, `--from-db`) share Post Pending Review, Error Handling, and Summary.
+
+## From DB input (--from-db)
+
+If the user invokes `/post-review --from-db` (the review was triaged in the
+review-harness app), read the decided findings from the DB instead of the
+conversation. Skip Parse Context, Noise Threshold, and the Interactive Loop.
+
+Steps:
+
+1. Run pre-flight (`gh auth status`, `gh pr view` for `number,url,headRefOid,owner,repo`). Refuse if auth fails or there is no open PR.
+2. Resolve decided findings:
+
+```bash
+python3 ~/.claude/review-harness/db/get_decided.py <<JSON
+{"owner": "{owner}", "repo": "{repo}", "pr_number": {number}}
+JSON
+```
+
+   (`{number}` is the integer PR number.) If `review` is null or `decided` is
+   empty, abort with `Nothing decided in the app for this PR. Triage it in the
+   review-harness app first.`
+3. Map each decided finding: `decision == "inline"` becomes an inline comment
+   (`path`, `line`, `side: RIGHT`, `body`); `decision == "general"` becomes a
+   general comment (body prefixed with `` `path:line` ``). Re-prepend the
+   `**[severity]**` tag if missing.
+4. Run Post Pending Review Step 1 (inline) and Step 2 (general) exactly as the
+   standard path does, using `headRefOid` for `commit_id`.
+5. After Step 1 succeeds, record posted state (best-effort, non-fatal):
+
+```bash
+python3 ~/.claude/review-harness/db/mark_posted.py <<JSON
+{"review_id": <review.id>, "posted": [{"finding_id": <id1>}, {"finding_id": <id2>}]}
+JSON
+```
+
+6. Run Step 3 Report, then Summary and Verdict unchanged.
+
+The standard invocation and `--from <path>` are unchanged. `--from-db` shares
+Post Pending Review, Error Handling, Summary, and Verdict.
 
 ## Pre-flight
 
