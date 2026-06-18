@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
-# Install review-harness db scripts to the stable runtime location the skills call.
-# Symlinks <repo>/review-harness/db -> ~/.claude/review-harness/db so the scripts
-# (and their sibling dbcommon.py / schema.sql) resolve, and the DB lives one level
-# up at ~/.claude/review-harness/reviews.db.
+# Install review-harness scripts to the stable runtime location the skills and
+# hook call. Symlinks the db and hooks dirs into ~/.claude/review-harness, and
+# reminds the owner to build the app and merge the hook snippet.
 set -euo pipefail
 
-repo_db_dir="$(cd "$(dirname "$0")/db" && pwd)"
+repo_root="$(cd "$(dirname "$0")" && pwd)"
 target_dir="$HOME/.claude/review-harness"
 
 mkdir -p "$target_dir"
-ln -sfn "$repo_db_dir" "$target_dir/db"
-echo "Linked $target_dir/db -> $repo_db_dir"
+ln -sfn "$repo_root/db" "$target_dir/db"
+ln -sfn "$repo_root/hooks" "$target_dir/hooks"
+echo "Linked $target_dir/db -> $repo_root/db"
+echo "Linked $target_dir/hooks -> $repo_root/hooks"
+echo
+echo "Next:"
+echo "  1. npm install --prefix $repo_root/app"
+echo "  2. npm run build --prefix $repo_root/app"
+echo "  3. Merge $repo_root/hooks/settings-snippet.json into ~/.claude/settings.json"
