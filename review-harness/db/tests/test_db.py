@@ -151,5 +151,55 @@ class TestDecisionsAndPosted(DbTestCase):
         self.assertEqual(status, "posted")
 
 
+class TestAddressedAndGet(DbTestCase):
+    def _seed_posted(self):
+        out = run_script("insert_review.py",
+                         {"pr": SAMPLE_PR, "findings": SAMPLE_FINDINGS},
+                         self.db_path)
+        run_script("mark_posted.py",
+                   {"review_id": out["review_id"],
+                    "posted": [{"finding_id": fid} for fid in out["finding_ids"]]},
+                   self.db_path)
+        return out["review_id"], out["finding_ids"]
+
+    def test_partial_addressed_sets_awaiting_author(self):
+        review_id, finding_ids = self._seed_posted()
+        out = run_script(
+            "mark_addressed.py",
+            {"review_id": review_id,
+             "addressed": [{"finding_id": finding_ids[0],
+                            "addressed_status": "addressed",
+                            "addressed_commit_sha": "deadbeef"}]},
+            self.db_path,
+        )
+        self.assertEqual(out["review_status"], "awaiting_author")
+
+    def test_all_addressed_sets_addressed(self):
+        review_id, finding_ids = self._seed_posted()
+        out = run_script(
+            "mark_addressed.py",
+            {"review_id": review_id,
+             "addressed": [{"finding_id": finding_ids[0], "addressed_status": "addressed"},
+                           {"finding_id": finding_ids[1], "addressed_status": "wont_fix"}]},
+            self.db_path,
+        )
+        self.assertEqual(out["review_status"], "addressed")
+
+    def test_get_review_returns_posted_only(self):
+        review_id, finding_ids = self._seed_posted()
+        out = run_script("get_review.py",
+                         {"owner": SAMPLE_PR["owner"], "repo": SAMPLE_PR["repo"],
+                          "pr_number": SAMPLE_PR["number"]},
+                         self.db_path)
+        self.assertEqual(out["review"]["id"], review_id)
+        self.assertEqual(len(out["posted_findings"]), 2)
+
+    def test_get_review_absent_returns_null(self):
+        out = run_script("get_review.py",
+                         {"owner": "nobody", "repo": "nothing", "pr_number": 1},
+                         self.db_path)
+        self.assertIsNone(out["review"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
