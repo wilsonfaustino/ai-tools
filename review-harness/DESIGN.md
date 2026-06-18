@@ -172,6 +172,14 @@ review-harness/
 - **Schema drift between Python and Node clients** → single `schema.sql`,
   applied idempotently on open by whichever client touches the DB first.
 
+## Install
+
+Run `bash review-harness/install.sh` once to symlink `review-harness/db/` into
+`~/.claude/review-harness/db/`, the stable path the skills call. The symlink
+keeps `dbcommon.py` and `schema.sql` co-located with the scripts, and the DB
+file (`reviews.db`) lives one level up at `~/.claude/review-harness/reviews.db`.
+This supersedes the earlier note that no install step was needed.
+
 ## Open questions
 
 None blocking. Hook event/matcher choice is a plan-level detail, not a design
