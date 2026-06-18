@@ -193,12 +193,14 @@ class TestAddressedAndGet(DbTestCase):
                          self.db_path)
         self.assertEqual(out["review"]["id"], review_id)
         self.assertEqual(len(out["posted_findings"]), 2)
+        self.assertIn("in_diff", out["posted_findings"][0])
 
     def test_get_review_absent_returns_null(self):
         out = run_script("get_review.py",
                          {"owner": "nobody", "repo": "nothing", "pr_number": 1},
                          self.db_path)
         self.assertIsNone(out["review"])
+        self.assertEqual(out["posted_findings"], [])
 
 
 if __name__ == "__main__":

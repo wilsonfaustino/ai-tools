@@ -22,7 +22,7 @@ def main():
             json.dump({"review": None, "posted_findings": []}, sys.stdout)
             return
         posted = conn.execute(
-            "SELECT id, severity, path, line, body, gh_comment_id, posted_at,"
+            "SELECT id, severity, path, line, in_diff, body, gh_comment_id, posted_at,"
             " addressed_status, addressed_commit_sha FROM findings"
             " WHERE review_id=? AND posted_at IS NOT NULL",
             (review["id"],),
