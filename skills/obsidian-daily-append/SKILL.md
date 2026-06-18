@@ -24,11 +24,18 @@ mechanical edit makes invocations cheap and predictable.
 
 ## Daily Note Location
 
+Notes live under year/month folders, with the full date in the filename:
+
 ```
-/Users/wilsonfaustino/Library/Mobile Documents/iCloud~md~obsidian/Documents/dot/Daily Tasks/YYYY-MM-DD.md
+/Users/wilsonfaustino/Library/Mobile Documents/iCloud~md~obsidian/Documents/dot/Daily Tasks/YYYY/MM/YYYY-MM-DD.md
 ```
 
-Resolve today's date with: `date +%Y-%m-%d`
+Resolve the path with:
+
+```bash
+DAILY_ROOT="/Users/wilsonfaustino/Library/Mobile Documents/iCloud~md~obsidian/Documents/dot/Daily Tasks"
+DAILY_NOTE="${DAILY_ROOT}/$(date +%Y)/$(date +%m)/$(date +%Y-%m-%d).md"
+```
 
 The script never creates the file and never modifies anything beyond the
 single insertion line.
@@ -118,8 +125,8 @@ The script lives at `scripts/append_task.py` relative to this SKILL.md.
 Resolve today's note path first:
 
 ```bash
-TODAY=$(date +%Y-%m-%d)
-DAILY_NOTE="/Users/wilsonfaustino/Library/Mobile Documents/iCloud~md~obsidian/Documents/dot/Daily Tasks/${TODAY}.md"
+DAILY_ROOT="/Users/wilsonfaustino/Library/Mobile Documents/iCloud~md~obsidian/Documents/dot/Daily Tasks"
+DAILY_NOTE="${DAILY_ROOT}/$(date +%Y)/$(date +%m)/$(date +%Y-%m-%d).md"
 ```
 
 Then call the script with the resolved type and section. Examples:
