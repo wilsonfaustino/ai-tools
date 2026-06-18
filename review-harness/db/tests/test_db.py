@@ -61,5 +61,49 @@ class TestFoundation(DbTestCase):
         conn.close()
 
 
+SAMPLE_PR = {
+    "number": 423,
+    "owner": "wilsonfaustino",
+    "repo": "ai-tools",
+    "branch": "feature-x",
+    "title": "Add feature X",
+    "head_sha": "a3f9b21e4c8d5f6a7b8c9d0e1f2a3b4c5d6e7f80",
+}
+SAMPLE_FINDINGS = [
+    {"severity": "critical", "path": "src/db.ts", "line": 88,
+     "in_diff": True, "body": "**[critical]** Interpolated input."},
+    {"severity": "minor", "path": "src/utils.ts", "line": 9,
+     "in_diff": True, "body": "**[minor]** Prefer const."},
+]
+
+
+class TestInsertReview(DbTestCase):
+    def test_insert_creates_review_and_findings(self):
+        out = run_script(
+            "insert_review.py",
+            {"pr": SAMPLE_PR, "findings": SAMPLE_FINDINGS},
+            self.db_path,
+        )
+        self.assertIsInstance(out["review_id"], int)
+        self.assertEqual(len(out["finding_ids"]), 2)
+
+    def test_rerun_dedups_findings_and_updates_sha(self):
+        run_script("insert_review.py",
+                   {"pr": SAMPLE_PR, "findings": SAMPLE_FINDINGS}, self.db_path)
+        updated_pr = dict(SAMPLE_PR, head_sha="bbbb222233334444555566667777888899990000")
+        out = run_script("insert_review.py",
+                         {"pr": updated_pr, "findings": SAMPLE_FINDINGS},
+                         self.db_path)
+        self.assertEqual(len(out["finding_ids"]), 0)
+        conn = self._connect()
+        sha = conn.execute("SELECT head_sha FROM reviews WHERE id=?",
+                           (out["review_id"],)).fetchone()["head_sha"]
+        count = conn.execute("SELECT COUNT(*) AS c FROM findings WHERE review_id=?",
+                             (out["review_id"],)).fetchone()["c"]
+        conn.close()
+        self.assertEqual(sha, updated_pr["head_sha"])
+        self.assertEqual(count, 2)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
