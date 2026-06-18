@@ -25,7 +25,7 @@ Steps:
 3. Run `gh auth status`. If it fails, refuse.
 4. Do NOT run `gh pr view`. The JSON already carries the PR identity captured at triage time.
 5. Re-prepend the `**[severity]**` tag if any comment body has had it stripped. Severity is inferred from the tag if still present; otherwise keep the body as-is.
-6. If both `comments` and `general_comments` are empty, abort with `Nothing to post`. If only `comments` is non-empty, run Post Pending Review Step 1 using `comments` and `pr.sha` for `commit_id`, then skip Step 2. If only `general_comments` is non-empty, skip Step 1 entirely and run Step 2 for each entry. Otherwise run both.
+6. If both `comments` and `general_comments` are empty, abort with `Nothing to post`. If only `comments` is non-empty, run Post Pending Review Step 1 using `comments` and `pr.sha` for `commit_id`, then skip Step 2. If only `general_comments` is non-empty, skip Step 1 entirely and run Step 2 for each entry. Otherwise run both. When Step 1 ran (inline comments were posted), after it succeeds run Step 1b using `pr.owner`, `pr.repo`, and `pr.number` from the JSON. If Step 1 was skipped (only general comments posted), skip Step 1b.
 7. Step 2 is the per-entry general-comment POST for each item in `general_comments`.
 8. Run Step 3 Report. The Summary and Verdict sections run unchanged.
 
@@ -239,6 +239,40 @@ Build the payload as `/tmp/pr-review-comments.json` from the queued comments. De
 Always use the JSON file approach. Do not attempt inline array syntax with `-f` flags
 as it is fragile and error-prone with nested arrays.
 
+### Step 1b: Record posted findings in review-harness
+
+Best-effort. If it fails, print a one-line warning and continue (the GitHub
+review is already posted; DB tracking is secondary).
+
+1. Resolve the review id and finding ids from the DB (where `{number}` is the integer PR number, resolved from the JSON):
+
+```bash
+python3 ~/.claude/review-harness/db/get_review.py <<JSON
+{"owner": "{owner}", "repo": "{repo}", "pr_number": {number}}
+JSON
+```
+
+   If `review` is null (staff-review did not persist this PR), skip Step 1b.
+
+2. For each queued inline comment, find the stored finding whose `path` and
+   `line` match, collecting its `id`. Then mark them posted:
+
+```bash
+python3 ~/.claude/review-harness/db/mark_posted.py <<JSON
+{"review_id": <review_id>,
+ "posted": [{"finding_id": <id1>}, {"finding_id": <id2>}]}
+JSON
+```
+
+3. Optionally record the chosen decisions:
+
+```bash
+python3 ~/.claude/review-harness/db/set_decisions.py <<JSON
+{"decisions": [{"finding_id": <id1>, "decision": "inline"},
+               {"finding_id": <id3>, "decision": "skip"}]}
+JSON
+```
+
 ### Step 2: Post general comments
 
 For out-of-diff items the user chose to post as general comments:
@@ -323,4 +357,4 @@ If `gh api` returns 403 or 429: pause and inform user. Do not retry automaticall
 - Post the summary other than as the body of a user-selected verdict submission.
 - Use `--force` or any destructive git/gh command
 - Use em-dashes in generated text
-- Modify any code or files
+- Modify any code or files under review (writing to `~/.claude/review-harness/` for DB tracking is allowed)

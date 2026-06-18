@@ -466,6 +466,35 @@ Wait for the user to respond before taking any further action.
 
 ---
 
+## Persist to review-harness
+
+After presenting the findings, persist them so post-review and
+gh-reply-comments can track them. This is best-effort: if it fails, report a
+one-line warning and continue. Do not abort the review.
+
+Build a JSON payload from the PR identity and the Section 3 findings, then:
+
+```bash
+python3 ~/.claude/review-harness/db/insert_review.py <<'JSON'
+{
+  "pr": {"number": <n>, "owner": "<owner>", "repo": "<repo>",
+         "branch": "<branch>", "title": "<title>", "head_sha": "<sha>"},
+  "findings": [
+    {"severity": "critical", "path": "src/db.ts", "line": 88,
+     "in_diff": true, "body": "**[critical]** ..."}
+  ]
+}
+JSON
+```
+
+The script lives at `~/.claude/review-harness/db/insert_review.py`, installed
+beside the database at `~/.claude/review-harness/reviews.db`. Capture
+`review_id` from stdout and report it: `Persisted as review <review_id>.`
+If the script exits non-zero, print `review-harness: persist skipped (<stderr>)`
+and continue.
+
+---
+
 ## Error Handling
 
 | Condition | Behavior |
@@ -486,8 +515,10 @@ Wait for the user to respond before taking any further action.
 ## Hard Rules
 
 **Never post, submit, or publish any comments to the PR.** This skill is
-read-only. No tool call, API request, or sub-skill invocation that writes to
-the PR is permitted under any circumstances.
+read-only with respect to GitHub and the PR. No tool call, API request, or
+sub-skill invocation that writes to the PR is permitted under any
+circumstances. Writing findings to the local review-harness SQLite DB (see
+"Persist to review-harness") is not a PR mutation and is explicitly allowed.
 
 - Never modify code or files
 - Never use em-dashes in generated text
