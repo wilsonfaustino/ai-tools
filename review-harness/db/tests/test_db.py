@@ -33,7 +33,9 @@ class DbTestCase(unittest.TestCase):
         self.tmp.cleanup()
 
     def _connect(self):
-        sys.path.insert(0, str(DB_DIR))
+        db_dir = str(DB_DIR)
+        if db_dir not in sys.path:
+            sys.path.insert(0, db_dir)
         os.environ["REVIEW_HARNESS_DB"] = str(self.db_path)
         import importlib
         import dbcommon
@@ -54,6 +56,8 @@ class TestFoundation(DbTestCase):
         self.assertIn("findings", tables)
         mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
         self.assertEqual(mode.lower(), "wal")
+        foreign_keys_on = conn.execute("PRAGMA foreign_keys").fetchone()[0]
+        self.assertEqual(foreign_keys_on, 1)
         conn.close()
 
 
