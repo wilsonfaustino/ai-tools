@@ -77,14 +77,6 @@ Filter to `isResolved: false`. If zero unresolved threads, inform user and exit.
 
 Store `viewerLastReviewAt` as the most recent `submittedAt` across the viewer's reviews (null if none). This anchors the reviewer-follow-up diff window.
 
-## Classify Threads
-
-For each unresolved thread:
-
-- `rootAuthor = comments.nodes[0].author.login`
-- If `rootAuthor == viewer.login`: mode = `reviewer-follow-up`
-- Else: mode = `author-reply`
-
 ## Load baseline from review-harness (reviewer-follow-up only)
 
 Before classifying reviewer-follow-up threads, load the stored baseline for this PR:
@@ -98,6 +90,14 @@ JSON
 If `review` is non-null, use `posted_findings` (matched by `path` and `line`) as the authoritative set of comments you posted. Diff the current PR commits against `review.head_sha` to decide whether each finding was addressed. If `review` is null, fall back to the existing live-PR derivation.
 
 If the script fails for any reason, print a one-line warning and continue with the live-PR derivation. Never block the reply flow on a DB failure.
+
+## Classify Threads
+
+For each unresolved thread:
+
+- `rootAuthor = comments.nodes[0].author.login`
+- If `rootAuthor == viewer.login`: mode = `reviewer-follow-up`
+- Else: mode = `author-reply`
 
 ## Mode Confirmation (mandatory)
 
@@ -233,14 +233,14 @@ After the addressed/not decision is made for each reviewer-follow-up thread, per
 
 ```bash
 python3 ~/.claude/review-harness/db/mark_addressed.py <<JSON
-{"review_id": <review_id>,
+{"review_id": <review.id from get_review.py baseline>,
  "addressed": [{"finding_id": <id1>, "addressed_status": "addressed",
                 "addressed_commit_sha": "<sha>"},
                {"finding_id": <id2>, "addressed_status": "open"}]}
 JSON
 ```
 
-Report the returned `review_status` to the user (for example: `Review now: addressed.`). If the script fails, print a one-line warning and continue. Never block replies on this call.
+Report the returned `review_status` to the user (for example, `Review now: addressed.`). If the script fails, print a one-line warning and continue. Never block replies on this call.
 
 ## Error Handling
 
