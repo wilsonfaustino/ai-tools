@@ -19,10 +19,11 @@ fi
 # Launch under Node 24 to match the prebuilt better-sqlite3 native module
 # (its ABI is tied to the Node major version). Pin via fnm when present,
 # since the fnm default may be a different major; fall back to ambient node.
+# Detach fully (stdin from /dev/null) so the server survives the hook returning.
 if command -v fnm >/dev/null 2>&1; then
-  nohup fnm exec --using=24 -- node "${app_dir}/server.js" >"${app_dir}/.server.log" 2>&1 &
+  nohup fnm exec --using=24 -- node "${app_dir}/server.js" </dev/null >"${app_dir}/.server.log" 2>&1 &
 else
-  nohup node "${app_dir}/server.js" >"${app_dir}/.server.log" 2>&1 &
+  nohup node "${app_dir}/server.js" </dev/null >"${app_dir}/.server.log" 2>&1 &
 fi
 disown || true
 exit 0
