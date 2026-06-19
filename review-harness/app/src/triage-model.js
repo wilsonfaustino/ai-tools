@@ -110,3 +110,23 @@ export function severityChips(bySeverity) {
       color: SEVERITY_META[severity].color,
     }))
 }
+
+const STATE_SECTIONS = [
+  { key: 'open', label: 'Open', match: (state) => state !== 'MERGED' && state !== 'CLOSED' },
+  { key: 'merged', label: 'Merged', match: (state) => state === 'MERGED' },
+  { key: 'closed', label: 'Closed', match: (state) => state === 'CLOSED' },
+]
+
+export function groupReviews(reviews) {
+  return STATE_SECTIONS.map((section) => {
+    const inSection = reviews.filter((review) => section.match(review.pr_state))
+    const byRepo = {}
+    for (const review of inSection) {
+      const repo = `${review.owner}/${review.repo}`
+      if (!byRepo[repo]) byRepo[repo] = []
+      byRepo[repo].push(review)
+    }
+    const repos = Object.keys(byRepo).sort().map((repo) => ({ repo, reviews: byRepo[repo] }))
+    return { key: section.key, label: section.label, count: inSection.length, repos }
+  }).filter((section) => section.count > 0)
+}

@@ -186,3 +186,14 @@ kbd {
 .refresh-error { color: #F2545B; font-size: 12px; }
 .finding-link { font-size: 13px; }
 .finding { scroll-margin-top: 140px; }
+
+.state-section { margin-top: 28px; }
+.state-section:first-of-type { margin-top: 16px; }
+.state-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.state-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.state-label.state-open { color: #5B8DEF; }
+.state-label.state-merged { color: #A371F7; }
+.state-label.state-closed { color: #8892A0; }
+.state-count { color: #646C7A; font-size: 12px; }
+.repo-group { margin: 10px 0 16px; }
+.repo-header { color: #8892A0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; margin: 0 0 6px 2px; }

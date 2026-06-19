@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   stripSeverityPrefix, parseBody, filterFindings, groupBySeverity, counts,
   SEVERITY_ORDER, ACTION_ORDER,
-  prBadge, relativeAge, severityChips,
+  prBadge, relativeAge, severityChips, groupReviews,
 } from '../src/triage-model.js'
 
 test('SEVERITY_ORDER and ACTION_ORDER are the agreed taxonomies', () => {
@@ -101,4 +101,27 @@ test('severityChips omits zeros and keeps SEVERITY_ORDER', () => {
   assert.equal(chips[0].count, 2)
   assert.equal(chips[0].label, 'Critical')
   assert.deepEqual(severityChips(undefined), [])
+})
+
+test('groupReviews splits by state, groups by repo, drops empty sections', () => {
+  const reviews = [
+    { id: 1, owner: 'o', repo: 'a', pr_state: 'OPEN' },
+    { id: 2, owner: 'o', repo: 'b', pr_state: 'MERGED' },
+    { id: 3, owner: 'o', repo: 'a', pr_state: 'OPEN' },
+    { id: 4, owner: 'o', repo: 'a', pr_state: null },
+    { id: 5, owner: 'o', repo: 'b', pr_state: 'MERGED' },
+  ]
+  const sections = groupReviews(reviews)
+  assert.deepEqual(sections.map((section) => section.key), ['open', 'merged'])
+  assert.equal(sections[0].label, 'Open')
+  assert.equal(sections[0].count, 3)
+  assert.deepEqual(sections[0].repos.map((group) => group.repo), ['o/a'])
+  assert.deepEqual(sections[0].repos[0].reviews.map((review) => review.id), [1, 3, 4])
+  assert.deepEqual(sections[1].repos.map((group) => group.repo), ['o/b'])
+  assert.equal(sections[1].repos[0].reviews.length, 2)
+})
+
+test('groupReviews puts CLOSED (not merged) in its own section', () => {
+  const sections = groupReviews([{ id: 1, owner: 'o', repo: 'a', pr_state: 'CLOSED' }])
+  assert.deepEqual(sections.map((section) => section.key), ['closed'])
 })
