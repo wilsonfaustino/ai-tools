@@ -1,13 +1,18 @@
 ---
-description: Remove a review worktree. Infers branch from cwd when run inside one.
+description: Remove a review worktree via worktrunk. Infers branch from cwd when run inside one.
 argument-hint: [branch] [--force]
 ---
 
-Remove a worktree previously created by `/wt-review`. Do NOT delete the local tracking branch; leave it for the user to clean later.
+Remove a worktree previously created by `/wt-review`, using worktrunk (`wt remove`). Do NOT delete the local tracking branch; leave it for the user to clean later.
 
 Parse `$ARGUMENTS`:
 - Optional positional: branch name. If omitted, infer from current worktree.
-- Flag: `--force` passes through to `git worktree remove --force`.
+- Flag: `--force` passes through to `wt remove --force`.
+
+## Pre-flight (hard blocks)
+
+1. `wt` is installed: `command -v wt`. Abort if missing: "worktrunk (`wt`) not installed."
+2. In a git repo (`git rev-parse --git-dir`).
 
 ## Resolve target
 
@@ -18,36 +23,43 @@ If no argument:
 - If not inside a `/wt-review` worktree: abort with "No branch specified and not inside a `.claude/worktrees/` worktree."
 - Infer branch from path: last segment of the worktree path.
 
-## Pre-flight
+## Scope guard (hard block)
 
-- In a git repo (`git rev-parse --git-dir`).
-- Worktree path exists: `.claude/worktrees/<branch>` (absolute via `git rev-parse --show-toplevel`). If missing, abort: "No worktree found at `<path>`."
+Resolve the worktree path for `<branch>` from `git worktree list --porcelain`.
+
+- If no worktree is checked out on `<branch>`: abort with "No worktree found for branch `<branch>`."
+- If the path does not start with `<repo-root>/.claude/worktrees/` (absolute via `git rev-parse --show-toplevel`): abort with "Branch `<branch>` worktree is not under `.claude/worktrees/`; `/wt-clean` only removes review worktrees."
 
 ## Exit if inside
 
 If the current session is inside the worktree being removed:
 - Call `ExitWorktree` with `action: "keep"` (the session was not created via `EnterWorktree`'s create mode; `remove` is not valid for path-entered worktrees).
-- After exiting, continue to `git worktree remove`.
+- After exiting, continue to removal.
 
 If not inside: skip this step.
 
 ## Remove
 
-Run `git worktree remove <path>`. If it fails because of local changes or untracked files:
-- If `--force` was passed: rerun with `--force`.
-- Else: abort and print the git error; suggest the user review the worktree contents or re-run with `--force`.
+Run `wt remove <branch> --no-delete-branch`. `--no-delete-branch` keeps the local branch; removal runs in the background and is squash/rebase-merge aware.
+
+If it fails because the worktree is dirty (uncommitted or untracked files):
+- If `--force` was passed: rerun as `wt remove <branch> --no-delete-branch --force`.
+- Else: abort and print the `wt` error; suggest re-running with `--force`.
+
+If it fails because a project hook needs approval in a non-interactive shell: abort and tell the user to run `wt config approvals add`. Do NOT pass `--yes` on their behalf.
 
 ## Report
 
 Print:
 
 ```
-Removed worktree: <path>
+Removed worktree for `<branch>` (worktrunk).
 Local branch `<branch>` preserved. Delete with: git branch -D <branch>
 ```
 
 ## Rules
 
-- Never delete the local tracking branch.
-- Never run `git branch -D` or any branch-destructive command.
+- Never delete the local tracking branch (always pass `--no-delete-branch`).
+- Never run `git branch -D`, `wt remove -D`, or any branch-destructive command.
 - Never remove a worktree outside `.claude/worktrees/`.
+- Never pass `--yes` to bypass hook approvals; escalate to the user.
