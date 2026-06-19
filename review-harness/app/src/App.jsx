@@ -7,30 +7,27 @@ function ReviewRow({ review, onOpen, now }) {
   const badge = prBadge(review.pr_state, review.review_decision)
   const chips = severityChips(review.severity)
   return (
-    <li>
-      <button className="review-row" onClick={() => onOpen(review.id)}>
-        <span className="pr">#{review.pr_number}</span>
-        <span className="row-title">{review.title}</span>
-        <span className="spacer" />
-        {chips.length > 0 && (
-          <span className="sev-mini">
-            {chips.map((chip) => (
-              <span key={chip.severity} className="sev-mini-item" style={{ color: chip.color }}>
-                {chip.count}{chip.label[0]}
-              </span>
-            ))}
+    <button className="review-row" onClick={() => onOpen(review.id)}>
+      <span className="pr">#{review.pr_number}</span>
+      <span className="row-title">{review.title}</span>
+      <span className="sev-mini">
+        {chips.map((chip) => (
+          <span key={chip.severity} className="sev-mini-item" style={{ color: chip.color }}>
+            {chip.count}{chip.label[0]}
           </span>
-        )}
-        {review.author && <span className="author">@{review.author}</span>}
-        <span className="pr-badge" style={{ '--badge': badge.color }}>{badge.label}</span>
-        <span className={`status status-${review.status}`}>{review.status}</span>
-        <span className="age">{relativeAge(review.updated_at, now)}</span>
+        ))}
+      </span>
+      <span className="author">{review.author ? `@${review.author}` : ''}</span>
+      <span className="pr-badge" style={{ '--badge': badge.color }}>{badge.label}</span>
+      <span className={`status status-${review.status}`}>{review.status}</span>
+      <span className="age">{relativeAge(review.updated_at, now)}</span>
+      <span className="row-arrow">
         {review.url && (
           <a className="gh-link" href={review.url} target="_blank" rel="noreferrer"
              onClick={(event) => event.stopPropagation()} title="Open PR on GitHub">↗</a>
         )}
-      </button>
-    </li>
+      </span>
+    </button>
   )
 }
 
@@ -50,11 +47,11 @@ function Dashboard({ reviews, onOpen }) {
           {section.repos.map((group) => (
             <div key={group.repo} className="repo-group">
               <div className="repo-header">{group.repo}</div>
-              <ul className="review-list">
+              <div className="review-list">
                 {group.reviews.map((review) => (
                   <ReviewRow key={review.id} review={review} onOpen={onOpen} now={now} />
                 ))}
-              </ul>
+              </div>
             </div>
           ))}
         </section>

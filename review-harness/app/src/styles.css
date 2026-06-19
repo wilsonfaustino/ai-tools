@@ -21,19 +21,24 @@ kbd {
 /* Dashboard (light re-theme of existing rows) */
 .dashboard { max-width: 1000px; margin: 0 auto; padding: 28px; }
 .dash-title { font-size: 1.2rem; font-weight: 700; }
-.review-list { list-style: none; padding: 0; }
+.review-list {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto auto auto auto;
+  gap: 8px 14px;
+  align-items: center;
+}
 .review-row {
-  width: 100%; display: flex; gap: 12px; align-items: center;
+  display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center;
   background: #13151A; color: #D7DBE2; border: 1px solid #20242D;
-  border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; text-align: left;
+  border-radius: 10px; padding: 12px 14px; cursor: pointer; text-align: left;
 }
 .review-row:hover { border-color: #2E3442; }
 .review-row .pr { font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: #EAEDF2; }
-.review-row .repo { flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; color: #8A92A0; }
-.review-row .status { font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; background: #1C1F27; color: #AEB6C2; }
-.review-row .status-posted { background: #1B2A3A; color: #9FB4E8; }
-.review-row .status-addressed { background: #14241C; color: #7BD3A6; }
-.review-row .open { font-size: 0.8rem; color: #666E7B; }
+.review-row .status {
+  font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 999px;
+  background: transparent; color: #8892A0; border: 1px solid #2A2F3A; justify-self: start;
+}
+.review-row .row-arrow { justify-self: end; }
 
 /* Triage screen */
 .triage-screen { min-height: 100vh; padding-bottom: 96px; }
@@ -167,7 +172,7 @@ kbd {
 }
 
 /* Dashboard row enrichments */
-.review-row .row-title { color: #C2C8D2; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
+.review-row .row-title { color: #C2C8D2; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .review-row .author { color: #8892A0; font-size: 12px; }
 .review-row .spacer { flex: 1; }
 .pr-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: var(--badge); border: 1px solid color-mix(in srgb, var(--badge) 45%, transparent); background: color-mix(in srgb, var(--badge) 14%, transparent); }
