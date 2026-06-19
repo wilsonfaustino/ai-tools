@@ -1,23 +1,47 @@
 import { useEffect, useState } from 'react'
 import { fetchReviews, fetchReview } from './api.js'
 import Triage from './Triage.jsx'
+import { prBadge, relativeAge, severityChips } from './triage-model.js'
 
 function Dashboard({ reviews, onOpen }) {
+  const now = Date.now()
   return (
     <div className="dashboard">
       <h1 className="dash-title">Open reviews</h1>
       {reviews.length === 0 && <p className="muted">No reviews yet. Run staff-review.</p>}
       <ul className="review-list">
-        {reviews.map((review) => (
-          <li key={review.id}>
-            <button className="review-row" onClick={() => onOpen(review.id)}>
-              <span className="pr">#{review.pr_number}</span>
-              <span className="repo">{review.owner}/{review.repo}</span>
-              <span className={`status status-${review.status}`}>{review.status}</span>
-              <span className="open">{review.open_count} undecided</span>
-            </button>
-          </li>
-        ))}
+        {reviews.map((review) => {
+          const badge = prBadge(review.pr_state, review.review_decision)
+          const chips = severityChips(review.severity)
+          return (
+            <li key={review.id}>
+              <button className="review-row" onClick={() => onOpen(review.id)}>
+                <span className="pr">#{review.pr_number}</span>
+                <span className="repo">{review.owner}/{review.repo}</span>
+                <span className="row-title">{review.title}</span>
+                {review.author && <span className="author">@{review.author}</span>}
+                <span className="pr-badge" style={{ '--badge': badge.color }}>{badge.label}</span>
+                <span className={`status status-${review.status}`}>{review.status}</span>
+                <span className="spacer" />
+                <span className="sev-mini">
+                  {chips.map((chip) => (
+                    <span key={chip.severity} className="sev-mini-item" style={{ color: chip.color }}>
+                      {chip.count}{chip.label[0]}
+                    </span>
+                  ))}
+                </span>
+                <span className="open">{review.pending_count} undecided</span>
+                {review.posted_count > 0 && <span className="meta-soft">{review.posted_count} posted</span>}
+                {review.addressed_count > 0 && <span className="meta-soft">{review.addressed_count} addressed</span>}
+                <span className="age">{relativeAge(review.updated_at, now)}</span>
+                {review.url && (
+                  <a className="gh-link" href={review.url} target="_blank" rel="noreferrer"
+                     onClick={(event) => event.stopPropagation()} title="Open PR on GitHub">↗</a>
+                )}
+              </button>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
