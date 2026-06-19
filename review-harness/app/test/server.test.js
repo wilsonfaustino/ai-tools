@@ -4,6 +4,20 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+test('refresh returns 404 for an unknown review', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'rh-refresh-'))
+  process.env.REVIEW_HARNESS_DB = join(dir, 'reviews.db')
+  const { createServer } = await import('../server.js?' + Date.now())
+  const server = createServer()
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const port = server.address().port
+
+  const res = await fetch(`http://127.0.0.1:${port}/api/reviews/999/refresh`, { method: 'POST' })
+  assert.equal(res.status, 404)
+
+  await new Promise((resolve) => server.close(resolve))
+})
+
 test('health and reviews endpoints respond', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'rh-srv-'))
   process.env.REVIEW_HARNESS_DB = join(dir, 'reviews.db')
