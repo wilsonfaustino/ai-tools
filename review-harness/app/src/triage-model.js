@@ -70,3 +70,43 @@ export function counts(findings) {
   const pending = byAction.pending
   return { total, triaged: total - pending, pending, bySeverity, byAction }
 }
+
+export const PR_BADGE_META = {
+  merged: { kind: 'merged', label: 'merged', color: '#A371F7' },
+  closed: { kind: 'closed', label: 'closed', color: '#8892A0' },
+  approved: { kind: 'approved', label: 'approved', color: '#2FA56B' },
+  changes: { kind: 'changes', label: 'changes', color: '#F2545B' },
+  open: { kind: 'open', label: 'open', color: '#5B8DEF' },
+}
+
+export function prBadge(prState, reviewDecision) {
+  if (prState === 'MERGED') return PR_BADGE_META.merged
+  if (prState === 'CLOSED') return PR_BADGE_META.closed
+  if (reviewDecision === 'APPROVED') return PR_BADGE_META.approved
+  if (reviewDecision === 'CHANGES_REQUESTED') return PR_BADGE_META.changes
+  return PR_BADGE_META.open
+}
+
+export function relativeAge(iso, nowMs) {
+  if (!iso) return ''
+  const then = Date.parse(iso)
+  if (Number.isNaN(then)) return ''
+  const seconds = Math.max(0, Math.round((nowMs - then) / 1000))
+  if (seconds < 60) return 'just now'
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.round(hours / 24)}d ago`
+}
+
+export function severityChips(bySeverity) {
+  return SEVERITY_ORDER
+    .filter((severity) => (bySeverity?.[severity] || 0) > 0)
+    .map((severity) => ({
+      severity,
+      count: bySeverity[severity],
+      label: SEVERITY_META[severity].label,
+      color: SEVERITY_META[severity].color,
+    }))
+}
