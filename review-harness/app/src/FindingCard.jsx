@@ -8,12 +8,15 @@ function renderBody(body) {
   })
 }
 
-export default function FindingCard({ finding, focused, expanded, onFocus, onAction, onBodyChange, onToggleExpand }) {
+export default function FindingCard({ finding, gitRef, focused, expanded, onFocus, onAction, onBodyChange, onToggleExpand }) {
   const decision = finding.decision || 'pending'
   const severity = SEVERITY_META[finding.severity] || { label: finding.severity, color: '#8892A0' }
   const slashIndex = finding.path.lastIndexOf('/')
   const dir = finding.path.slice(0, slashIndex + 1)
   const name = finding.path.slice(slashIndex + 1)
+  const blobUrl = gitRef
+    ? `https://github.com/${gitRef.owner}/${gitRef.repo}/blob/${gitRef.head_sha}/${finding.path}#L${finding.line}`
+    : null
   const dimmed = decision === 'skip' && !focused
   const statusColor = decision === 'pending' ? '#E5A53B' : ACTION_META[decision].color
   const statusText = decision === 'pending' ? '○ Pending' : `✓ ${ACTION_META[decision].label}`
@@ -44,6 +47,10 @@ export default function FindingCard({ finding, focused, expanded, onFocus, onAct
           <span className="file-name">{name}</span>
           <span className="file-line">:{finding.line}</span>
         </code>
+        {blobUrl && (
+          <a className="gh-link finding-link" href={blobUrl} target="_blank" rel="noreferrer"
+             onClick={(event) => event.stopPropagation()} title="Open file at reviewed commit">↗</a>
+        )}
         {finding.in_diff ? null : <span className="badge-ood">out-of-diff</span>}
         <span className="spacer" />
         <span className="status" style={{ color: statusColor }}>{statusText}</span>

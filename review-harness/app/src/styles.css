@@ -177,3 +177,12 @@ kbd {
 .review-row .age { color: #646C7A; font-size: 12px; min-width: 56px; text-align: right; }
 .gh-link { color: #5B8DEF; text-decoration: none; font-size: 14px; padding: 0 4px; }
 .gh-link:hover { color: #8FB4FF; }
+
+.title-row .pr-badge { margin-left: 4px; }
+.title-row .author { color: #8892A0; font-size: 13px; }
+.refresh-btn { background: #2A3140; color: #C2C8D2; border: 1px solid #3A4250; border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
+.refresh-btn:disabled { opacity: 0.6; cursor: default; }
+.synced { color: #646C7A; font-size: 12px; }
+.refresh-error { color: #F2545B; font-size: 12px; }
+.finding-link { font-size: 13px; }
+.finding { scroll-margin-top: 140px; }

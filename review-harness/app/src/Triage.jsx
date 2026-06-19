@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { submitTriage } from './api.js'
+import { submitTriage, refreshReview } from './api.js'
 import FindingCard from './FindingCard.jsx'
 import {
   SEVERITY_ORDER, SEVERITY_META, ACTION_META,
-  filterFindings, groupBySeverity, counts,
+  filterFindings, groupBySeverity, counts, prBadge, relativeAge,
 } from './triage-model.js'
 
 const PROGRESS_ORDER = ['inline', 'general', 'skip', 'pending']
@@ -17,6 +17,9 @@ export default function Triage({ detail, onBack, onSaved }) {
   const [expandedId, setExpandedId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [review, setReview] = useState(detail.review)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState(null)
   const toastTimer = useRef(null)
 
   const stat = useMemo(() => counts(rows), [rows])
@@ -66,6 +69,20 @@ export default function Triage({ detail, onBack, onSaved }) {
     return () => window.removeEventListener('keydown', onKey)
   })
 
+  async function refresh() {
+    setRefreshing(true)
+    setRefreshError(null)
+    try {
+      const updated = await refreshReview(review.id)
+      setReview(updated.review)
+      if (onSaved) onSaved()
+    } catch (err) {
+      setRefreshError(err.message)
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   async function save() {
     setSaving(true)
     try {
@@ -87,8 +104,19 @@ export default function Triage({ detail, onBack, onSaved }) {
             <button className="back-btn" onClick={onBack}>&lsaquo; Back</button>
             <div className="header-title">
               <div className="title-row">
-                <span className="pr-num">#{detail.review.pr_number}</span>
-                <span className="repo-slug">{detail.review.owner}/{detail.review.repo}</span>
+                <span className="pr-num">#{review.pr_number}</span>
+                <span className="repo-slug">{review.owner}/{review.repo}</span>
+                {(() => { const badge = prBadge(review.pr_state, review.review_decision)
+                  return <span className="pr-badge" style={{ '--badge': badge.color }}>{badge.label}</span> })()}
+                {review.author && <span className="author">@{review.author}</span>}
+                {review.url && (
+                  <a className="gh-link" href={review.url} target="_blank" rel="noreferrer" title="Open PR on GitHub">↗</a>
+                )}
+                <button className="refresh-btn" onClick={refresh} disabled={refreshing}>
+                  {refreshing ? 'Refreshing...' : 'Refresh'}
+                </button>
+                {review.pr_synced_at && <span className="synced">synced {relativeAge(review.pr_synced_at, Date.now())}</span>}
+                {refreshError && <span className="refresh-error">{refreshError}</span>}
               </div>
               <div className="subtitle">Decide what to do with each finding, then save your triage.</div>
             </div>
@@ -134,6 +162,7 @@ export default function Triage({ detail, onBack, onSaved }) {
             </div>
             {group.findings.map((finding) => (
               <FindingCard key={finding.id} finding={finding}
+                gitRef={{ owner: review.owner, repo: review.repo, head_sha: review.head_sha }}
                 focused={finding.id === focusedId}
                 expanded={finding.id === expandedId}
                 onFocus={focus} onAction={setAction} onBodyChange={setBody} onToggleExpand={toggleExpand} />
