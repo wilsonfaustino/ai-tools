@@ -1,16 +1,17 @@
 ---
-description: Run the full PR review pipeline -- staff-review, browser triage, then post as pending review.
-argument-hint: "[--no-board] [--no-judge]"
+description: Run the full PR review pipeline -- staff-review, triage in the review-harness app, then post as pending review.
+argument-hint: "[--no-app] [--no-judge]"
 ---
 
 Orchestrate the three-stage PR review pipeline end to end:
-`/staff-review` -> `/review-board` -> `/post-review --from`. Each stage keeps
-its own human gate; this command just chains them and carries the JSON path
-between board and post.
+`/staff-review` -> review-harness app -> `/post-review --from-db`. Each stage
+keeps its own human gate; this command just chains them. The review-harness
+SQLite DB is the bridge between stages: staff-review persists findings, the app
+records decisions, post-review reads them back.
 
 Parse `$ARGUMENTS` (whitespace-split). Recognized flags:
 
-- `--no-board`: skip the browser triage. After staff-review, run `/post-review`
+- `--no-app`: skip the browser triage. After staff-review, run `/post-review`
   interactively (linear send/edit/skip loop) instead.
 - `--no-judge`: forwarded to `/staff-review`.
 - any other token: abort with `Unrecognized argument: <token>`.
@@ -18,8 +19,9 @@ Parse `$ARGUMENTS` (whitespace-split). Recognized flags:
 ## Stage 1 -- Gather (staff-review)
 
 Invoke the `staff-review` skill, forwarding `--no-judge` if present. It is
-read-only: it fans out, judges, and prints findings by severity. It posts
-nothing.
+read-only against the PR: it fans out, judges, prints findings by severity, and
+persists them to the review-harness DB (status `triaging`). It posts nothing to
+GitHub.
 
 If staff-review aborts (no PR, auth fail, toolkit missing), stop here and
 surface its error. Do not continue the pipeline.
@@ -30,28 +32,33 @@ Yes, or no findings at all), stop and print
 
 ## Stage 2 -- Triage
 
-### Default route (browser)
+### Default route (review-harness app)
 
-Invoke the `review-board` skill with output path `/tmp/review-triage.json`. It
-reads the staff-review Section 3 table from this conversation, renders the HTML
-page, and waits for the user to submit in the browser.
+The persisted findings are now triaged in the review-harness app, not in this
+conversation. The app serves `http://127.0.0.1:7777` and writes each decision
+(inline / general / skip) plus any edited comment body back to the same DB.
 
-- Board submits: it writes `/tmp/review-triage.json`. Proceed to Stage 3.
-- Board times out or the user cancels: stop. Print
-  `Triage not submitted. Re-run /review-board when ready, then /post-review
-  --from /tmp/review-triage.json.` Exit 0. (Findings are still in the
-  conversation; nothing is lost.)
+- The `ensure-up` PreToolUse hook auto-starts the app when a skill runs. If
+  `127.0.0.1:7777` is unreachable, start it manually:
+  `fnm exec --using=24 -- node ~/.claude/review-harness/app/server.js`
+  (the app is pinned to Node 24 for the `better-sqlite3` ABI).
+- Tell the user: open `http://127.0.0.1:7777`, open this PR's review, set a
+  decision for each finding, edit bodies as needed, then click `Save triage`.
+- Wait for the user to confirm they saved. Then proceed to Stage 3.
+- If the user cancels or does not triage: stop. Print
+  `Triage not saved. Triage in the app when ready, then run /post-review
+  --from-db.` Exit 0. (Findings remain in the DB; nothing is lost.)
 
-### `--no-board` route
+### `--no-app` route
 
-Skip review-board. Go straight to Stage 3 in interactive mode.
+Skip the app. Go straight to Stage 3 in interactive mode.
 
 ## Stage 3 -- Post (post-review)
 
-- Default route: invoke `post-review` with `--from /tmp/review-triage.json`.
-  It posts the queued comments as a single PENDING review (out-of-diff items
-  as general comments) without an interactive loop.
-- `--no-board` route: invoke `post-review` with no `--from`. It runs its
+- Default route: invoke `post-review` with `--from-db`. It reads the
+  decided-but-unposted findings from the DB and posts them as a single PENDING
+  review (out-of-diff items as general comments) without an interactive loop.
+- `--no-app` route: invoke `post-review` with no `--from-db`. It runs its
   one-at-a-time triage loop, then posts the queued comments as pending.
 
 post-review never submits a verdict.
@@ -67,8 +74,8 @@ After post-review finishes, remind the user:
 ## Hard rules
 
 - Never submit a review verdict. The user does this manually in GitHub.
-- staff-review and review-board are read-only; only post-review writes, and
-  only as pending.
+- staff-review is read-only against the PR; the app writes only to the local
+  DB; only post-review writes to GitHub, and only as pending.
 - If any stage aborts, stop the pipeline and surface the error. Do not paper
   over a failed stage by proceeding to the next.
 - Do not reimplement any stage's logic here. Invoke each skill and let it run.
