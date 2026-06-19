@@ -60,6 +60,28 @@ class TestFoundation(DbTestCase):
         self.assertEqual(foreign_keys_on, 1)
         conn.close()
 
+    def test_reviews_has_pr_metadata_columns(self):
+        conn = self._connect()
+        cols = {row["name"] for row in conn.execute("PRAGMA table_info(reviews)")}
+        for col in ("author", "url", "pr_state", "review_decision", "pr_synced_at"):
+            self.assertIn(col, cols)
+
+    def test_migration_adds_columns_to_legacy_db(self):
+        import sqlite3
+        legacy = sqlite3.connect(self.db_path)
+        legacy.executescript(
+            "CREATE TABLE reviews (id INTEGER PRIMARY KEY, pr_number INTEGER NOT NULL,"
+            " owner TEXT NOT NULL, repo TEXT NOT NULL, branch TEXT, title TEXT,"
+            " head_sha TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'triaging',"
+            " created_at TEXT NOT NULL, updated_at TEXT NOT NULL,"
+            " UNIQUE(owner, repo, pr_number));"
+        )
+        legacy.close()
+        conn = self._connect()
+        cols = {row["name"] for row in conn.execute("PRAGMA table_info(reviews)")}
+        self.assertIn("pr_state", cols)
+        self.assertIn("pr_synced_at", cols)
+
 
 SAMPLE_PR = {
     "number": 423,
