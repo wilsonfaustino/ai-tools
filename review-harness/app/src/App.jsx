@@ -11,9 +11,6 @@ function ReviewRow({ review, onOpen, now }) {
       <button className="review-row" onClick={() => onOpen(review.id)}>
         <span className="pr">#{review.pr_number}</span>
         <span className="row-title">{review.title}</span>
-        {review.author && <span className="author">@{review.author}</span>}
-        <span className="pr-badge" style={{ '--badge': badge.color }}>{badge.label}</span>
-        <span className={`status status-${review.status}`}>{review.status}</span>
         <span className="spacer" />
         {chips.length > 0 && (
           <span className="sev-mini">
@@ -24,6 +21,9 @@ function ReviewRow({ review, onOpen, now }) {
             ))}
           </span>
         )}
+        {review.author && <span className="author">@{review.author}</span>}
+        <span className="pr-badge" style={{ '--badge': badge.color }}>{badge.label}</span>
+        <span className={`status status-${review.status}`}>{review.status}</span>
         <span className="age">{relativeAge(review.updated_at, now)}</span>
         {review.url && (
           <a className="gh-link" href={review.url} target="_blank" rel="noreferrer"
