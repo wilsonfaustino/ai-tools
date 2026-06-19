@@ -264,5 +264,46 @@ class TestGetDecided(DbTestCase):
         self.assertEqual(out["decided"], [])
 
 
+class TestPrMetadataIngest(DbTestCase):
+    def _payload(self, **pr_overrides):
+        pr = {
+            "number": 5, "owner": "me", "repo": "r", "branch": "b",
+            "title": "t", "head_sha": "sha1", "author": "alice",
+            "url": "https://github.com/me/r/pull/5",
+            "pr_state": "OPEN", "review_decision": "REVIEW_REQUIRED",
+        }
+        pr.update(pr_overrides)
+        return {"pr": pr, "findings": []}
+
+    def test_insert_stores_pr_metadata(self):
+        run_script("insert_review.py", self._payload(), self.db_path)
+        conn = self._connect()
+        row = conn.execute(
+            "SELECT author, url, pr_state, review_decision, pr_synced_at"
+            " FROM reviews WHERE pr_number=5"
+        ).fetchone()
+        self.assertEqual(row["author"], "alice")
+        self.assertEqual(row["url"], "https://github.com/me/r/pull/5")
+        self.assertEqual(row["pr_state"], "OPEN")
+        self.assertEqual(row["review_decision"], "REVIEW_REQUIRED")
+        self.assertIsNotNone(row["pr_synced_at"])
+
+    def test_upsert_refreshes_pr_state(self):
+        run_script("insert_review.py", self._payload(), self.db_path)
+        run_script(
+            "insert_review.py",
+            self._payload(pr_state="MERGED", review_decision="APPROVED",
+                          head_sha="sha2"),
+            self.db_path,
+        )
+        conn = self._connect()
+        row = conn.execute(
+            "SELECT pr_state, review_decision, head_sha FROM reviews WHERE pr_number=5"
+        ).fetchone()
+        self.assertEqual(row["pr_state"], "MERGED")
+        self.assertEqual(row["review_decision"], "APPROVED")
+        self.assertEqual(row["head_sha"], "sha2")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

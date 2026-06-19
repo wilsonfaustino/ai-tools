@@ -25,19 +25,24 @@ def main():
         if existing_review:
             review_id = existing_review["id"]
             conn.execute(
-                "UPDATE reviews SET head_sha=?, title=?, branch=?, updated_at=?"
+                "UPDATE reviews SET head_sha=?, title=?, branch=?, author=?,"
+                " url=?, pr_state=?, review_decision=?, updated_at=?, pr_synced_at=?"
                 " WHERE id=?",
                 (pr["head_sha"], pr.get("title"), pr.get("branch"),
-                 timestamp, review_id),
+                 pr.get("author"), pr.get("url"), pr.get("pr_state"),
+                 pr.get("review_decision"), timestamp, timestamp, review_id),
             )
         else:
             cursor = conn.execute(
                 "INSERT INTO reviews"
-                " (pr_number, owner, repo, branch, title, head_sha, status,"
-                "  created_at, updated_at)"
-                " VALUES (?,?,?,?,?,?, 'triaging', ?, ?)",
+                " (pr_number, owner, repo, branch, title, head_sha, author, url,"
+                "  pr_state, review_decision, status, created_at, updated_at,"
+                "  pr_synced_at)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?, 'triaging', ?, ?, ?)",
                 (pr["number"], pr["owner"], pr["repo"], pr.get("branch"),
-                 pr.get("title"), pr["head_sha"], timestamp, timestamp),
+                 pr.get("title"), pr["head_sha"], pr.get("author"), pr.get("url"),
+                 pr.get("pr_state"), pr.get("review_decision"),
+                 timestamp, timestamp, timestamp),
             )
             review_id = cursor.lastrowid
 
