@@ -85,7 +85,11 @@ kbd {
 .chip.toggle.active { border-color: #E5A53B66; background: #E5A53B1C; color: #E5C173; }
 .kbd-legend { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; color: #5A6270; margin-right: 4px; }
 
-.triage-body { flex: 1; overflow-y: auto; width: 100%; max-width: 1000px; margin: 0 auto; padding: 24px 28px 40px; display: flex; flex-direction: column; gap: 28px; }
+.triage-body { flex: 1; overflow-y: auto; width: 100%; max-width: 1000px; margin: 0 auto; padding: 24px 28px 40px; display: flex; flex-direction: column; gap: 28px; scrollbar-width: thin; scrollbar-color: #2A2E38 transparent; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 28px, #000 calc(100% - 36px), transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 28px, #000 calc(100% - 36px), transparent 100%); }
+.triage-body::-webkit-scrollbar { width: 8px; }
+.triage-body::-webkit-scrollbar-track { background: transparent; }
+.triage-body::-webkit-scrollbar-thumb { background: #2A2E38; border-radius: 4px; }
+.triage-body::-webkit-scrollbar-thumb:hover { background: #3A3F4B; }
 .empty { text-align: center; padding: 70px 20px; color: #5A6270; font-size: 14px; }
 .sev-group { display: flex; flex-direction: column; gap: 12px; }
 .group-header { display: flex; align-items: center; gap: 9px; padding-left: 2px; }
