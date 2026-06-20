@@ -105,7 +105,7 @@ kbd {
 .finding.sev-nit { border-left-color: #8892A0; }
 .finding.focused { border-color: #2E3442; box-shadow: 0 0 0 1px #5B8DEF, 0 0 0 4px #5B8DEF22; }
 .finding.dimmed { opacity: 0.5; }
-.finding-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.finding-head { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
 .sev-badge {
   display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 6px;
   font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; flex: none;
@@ -113,15 +113,15 @@ kbd {
 }
 .sev-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sev); }
 .file-pill {
-  display: inline-flex; align-items: center; max-width: 100%; font-family: 'IBM Plex Mono', monospace;
+  display: inline-flex; align-items: center; flex: 0 1 auto; min-width: 0; font-family: 'IBM Plex Mono', monospace;
   font-size: 12px; background: #181B22; border: 1px solid #23262E; border-radius: 6px;
-  padding: 4px 9px; cursor: pointer; overflow: hidden;
+  padding: 4px 9px; cursor: pointer; overflow: hidden; white-space: nowrap;
 }
-.file-dir { color: #6B7280; }
-.file-name { color: #CBD0D9; font-weight: 600; }
-.file-line { color: #5B8DEF; font-weight: 600; }
+.file-dir { color: #6B7280; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.file-name { color: #CBD0D9; font-weight: 600; flex: none; }
+.file-line { color: #5B8DEF; font-weight: 600; flex: none; }
 .badge-ood { font-size: 0.7rem; padding: 1px 6px; border-radius: 4px; background: #553; color: #fc6; flex: none; }
-.status { font-size: 12px; font-weight: 600; font-family: inherit; flex: none; }
+.status { font-size: 12px; font-weight: 600; font-family: inherit; flex: none; margin-left: auto; }
 .finding-body { margin: 0; font-size: 14px; line-height: 1.66; color: #C2C8D2; cursor: pointer; }
 .finding-body .body-code {
   font-family: 'IBM Plex Mono', monospace; background: #1B1E26; color: #9FC8FF;

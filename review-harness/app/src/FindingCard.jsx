@@ -42,7 +42,7 @@ export default function FindingCard({ finding, gitRef, focused, expanded, onFocu
         <span className="sev-badge" style={{ '--sev': severity.color }}>
           <span className="sev-dot" />{severity.label}
         </span>
-        <code className="file-pill" title="Click to copy reference" onClick={copyReference}>
+        <code className="file-pill" title={`${finding.path}:${finding.line} (click to copy)`} onClick={copyReference}>
           <span className="file-dir">{dir}</span>
           <span className="file-name">{name}</span>
           <span className="file-line">:{finding.line}</span>
@@ -52,7 +52,6 @@ export default function FindingCard({ finding, gitRef, focused, expanded, onFocu
              onClick={(event) => event.stopPropagation()} title="Open file at reviewed commit">↗</a>
         )}
         {finding.in_diff ? null : <span className="badge-ood">out-of-diff</span>}
-        <span className="spacer" />
         <span className="status" style={{ color: statusColor }}>{statusText}</span>
       </div>
 
