@@ -103,6 +103,16 @@ export function saveTriage(id, items) {
   }
 }
 
+export function deleteReview(id) {
+  const handle = openDb()
+  try {
+    // findings cascade via ON DELETE CASCADE (foreign_keys pragma is ON)
+    return handle.prepare('DELETE FROM reviews WHERE id = ?').run(id).changes
+  } finally {
+    handle.close()
+  }
+}
+
 export function updatePrMeta(id, meta) {
   const handle = openDb()
   try {

@@ -38,7 +38,11 @@ kbd {
   font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 999px;
   background: transparent; color: #8892A0; border: 1px solid #2A2F3A; justify-self: start;
 }
-.review-row .row-arrow { justify-self: end; }
+.review-row .row-arrow { justify-self: end; display: inline-flex; align-items: center; gap: 10px; }
+.review-row .row-del {
+  color: #646C7A; font-size: 13px; line-height: 1; cursor: pointer; padding: 2px 4px; border-radius: 6px;
+}
+.review-row .row-del:hover { color: #F2545B; background: rgba(242, 84, 91, 0.1); }
 
 /* Triage screen */
 .triage-screen { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
@@ -204,5 +208,11 @@ kbd {
 .state-label.state-merged { color: #A371F7; }
 .state-label.state-closed { color: #8892A0; }
 .state-count { color: #646C7A; font-size: 12px; }
+.refresh-open {
+  margin-left: auto; padding: 4px 12px; border-radius: 8px; border: 1px solid #23262E;
+  background: #15171C; color: #9BA1AC; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.refresh-open:hover:not(:disabled) { border-color: #2E3442; color: #C2C8D2; }
+.refresh-open:disabled { opacity: 0.6; cursor: default; }
 .repo-group { margin: 10px 0 16px; }
 .repo-header { color: #8892A0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; margin: 0 0 6px 2px; }

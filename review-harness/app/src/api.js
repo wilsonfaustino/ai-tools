@@ -20,6 +20,15 @@ export async function submitTriage(id, findings) {
   return res.json()
 }
 
+export async function deleteReview(id) {
+  const res = await fetch(`/api/reviews/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}))
+    throw new Error(detail.error || 'failed to delete')
+  }
+  return res.json()
+}
+
 export async function refreshReview(id) {
   const res = await fetch(`/api/reviews/${id}/refresh`, { method: 'POST' })
   if (!res.ok) {

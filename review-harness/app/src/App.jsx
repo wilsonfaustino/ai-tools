@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { fetchReviews, fetchReview } from './api.js'
+import { fetchReviews, fetchReview, refreshReview, deleteReview } from './api.js'
 import Triage from './Triage.jsx'
 import { prBadge, relativeAge, severityChips, groupReviews } from './triage-model.js'
 
-function ReviewRow({ review, onOpen, now }) {
+function ReviewRow({ review, onOpen, onDelete, canDelete, now }) {
   const badge = prBadge(review.pr_state, review.review_decision)
   const chips = severityChips(review.severity)
   return (
@@ -26,14 +26,41 @@ function ReviewRow({ review, onOpen, now }) {
           <a className="gh-link" href={review.url} target="_blank" rel="noreferrer"
              onClick={(event) => event.stopPropagation()} title="Open PR on GitHub">↗</a>
         )}
+        {/* ponytail: clickable span mirrors gh-link pattern; keyboard-a11y deferred */}
+        {canDelete && (
+          <span className="row-del" title="Delete review"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  if (window.confirm(`Delete review for #${review.pr_number}? Removes it from the list and database.`)) {
+                    onDelete(review.id)
+                  }
+                }}>✕</span>
+        )}
       </span>
     </button>
   )
 }
 
-function Dashboard({ reviews, onOpen }) {
+function Dashboard({ reviews, onOpen, onReload }) {
   const now = Date.now()
   const sections = groupReviews(reviews)
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function refreshOpen(openReviews) {
+    setRefreshing(true)
+    try {
+      await Promise.all(openReviews.map((review) => refreshReview(review.id)))
+      await onReload()
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  async function remove(id) {
+    await deleteReview(id)
+    await onReload()
+  }
+
   return (
     <div className="dashboard">
       <h1 className="dash-title">Reviews</h1>
@@ -43,13 +70,20 @@ function Dashboard({ reviews, onOpen }) {
           <div className="state-header">
             <span className={`state-label state-${section.key}`}>{section.label}</span>
             <span className="state-count">{section.count}</span>
+            {section.key === 'open' && (
+              <button className="refresh-open" disabled={refreshing}
+                      onClick={() => refreshOpen(section.repos.flatMap((group) => group.reviews))}>
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
+            )}
           </div>
           {section.repos.map((group) => (
             <div key={group.repo} className="repo-group">
               <div className="repo-header">{group.repo}</div>
               <div className="review-list">
                 {group.reviews.map((review) => (
-                  <ReviewRow key={review.id} review={review} onOpen={onOpen} now={now} />
+                  <ReviewRow key={review.id} review={review} onOpen={onOpen}
+                             onDelete={remove} canDelete={section.key === 'open'} now={now} />
                 ))}
               </div>
             </div>
@@ -79,5 +113,5 @@ export default function App() {
   if (detail) {
     return <Triage key={detail.review.id} detail={detail} onBack={() => setDetail(null)} onSaved={loadReviews} />
   }
-  return <Dashboard reviews={reviews} onOpen={open} />
+  return <Dashboard reviews={reviews} onOpen={open} onReload={loadReviews} />
 }

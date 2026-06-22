@@ -58,6 +58,28 @@ test('listReviews and getReview and saveTriage round-trip', async () => {
   rmSync(dir, { recursive: true, force: true })
 })
 
+test('deleteReview removes review and cascades findings', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'rh-del-'))
+  const dbPath = join(dir, 'reviews.db')
+  process.env.REVIEW_HARNESS_DB = dbPath
+  seed(dbPath)
+  const { listReviews, getReview, deleteReview, openDb } = await import('../db.js?' + Date.now())
+  const id = listReviews()[0].id
+
+  const removed = deleteReview(id)
+  assert.equal(removed, 1)
+  assert.equal(listReviews().length, 0)
+  assert.equal(getReview(id), null)
+
+  const handle = openDb()
+  const orphans = handle.prepare('SELECT COUNT(*) AS n FROM findings WHERE review_id = ?').get(id)
+  handle.close()
+  assert.equal(orphans.n, 0)
+
+  assert.equal(deleteReview(id), 0)
+  rmSync(dir, { recursive: true, force: true })
+})
+
 test('updatePrMeta refreshes state and stamps pr_synced_at', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'rh-meta-'))
   const dbPath = join(dir, 'reviews.db')

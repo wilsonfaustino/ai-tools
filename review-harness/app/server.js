@@ -5,7 +5,7 @@ import { join, dirname, normalize, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { listReviews, getReview, saveTriage, updatePrMeta } from './db.js'
+import { listReviews, getReview, saveTriage, updatePrMeta, deleteReview } from './db.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -58,6 +58,10 @@ export function createServer() {
       if (detail && req.method === 'GET') {
         const review = getReview(Number(detail[1]))
         return review ? sendJson(res, 200, review) : sendJson(res, 404, { error: 'not found' })
+      }
+      if (detail && req.method === 'DELETE') {
+        const removed = deleteReview(Number(detail[1]))
+        return removed ? sendJson(res, 200, { deleted: removed }) : sendJson(res, 404, { error: 'not found' })
       }
 
       const triage = path.match(/^\/api\/reviews\/(\d+)\/triage$/)
