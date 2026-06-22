@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   stripSeverityPrefix, parseBody, filterFindings, groupBySeverity, counts,
   SEVERITY_ORDER, ACTION_ORDER,
+  prBadge, relativeAge, severityChips, groupReviews,
 } from '../src/triage-model.js'
 
 test('SEVERITY_ORDER and ACTION_ORDER are the agreed taxonomies', () => {
@@ -73,4 +74,54 @@ test('counts totals findings, pending, triaged, and per-bucket tallies', () => {
 test('counts treats a missing decision as pending', () => {
   const c = counts([{ severity: 'nit' }])
   assert.equal(c.pending, 1)
+})
+
+test('prBadge follows precedence merged > closed > approved > changes > open', () => {
+  assert.equal(prBadge('MERGED', 'APPROVED').kind, 'merged')
+  assert.equal(prBadge('CLOSED', 'CHANGES_REQUESTED').kind, 'closed')
+  assert.equal(prBadge('OPEN', 'APPROVED').kind, 'approved')
+  assert.equal(prBadge('OPEN', 'CHANGES_REQUESTED').kind, 'changes')
+  assert.equal(prBadge('OPEN', 'REVIEW_REQUIRED').kind, 'open')
+  assert.equal(prBadge(null, null).kind, 'open')
+})
+
+test('relativeAge formats common buckets and rejects bad input', () => {
+  const now = Date.parse('2026-06-19T12:00:00Z')
+  assert.equal(relativeAge('2026-06-19T11:59:30Z', now), 'just now')
+  assert.equal(relativeAge('2026-06-19T11:30:00Z', now), '30m ago')
+  assert.equal(relativeAge('2026-06-19T09:00:00Z', now), '3h ago')
+  assert.equal(relativeAge('2026-06-17T12:00:00Z', now), '2d ago')
+  assert.equal(relativeAge('', now), '')
+  assert.equal(relativeAge('not-a-date', now), '')
+})
+
+test('severityChips omits zeros and keeps SEVERITY_ORDER', () => {
+  const chips = severityChips({ critical: 2, warning: 0, suggestion: 1, nit: 0 })
+  assert.deepEqual(chips.map((c) => c.severity), ['critical', 'suggestion'])
+  assert.equal(chips[0].count, 2)
+  assert.equal(chips[0].label, 'Critical')
+  assert.deepEqual(severityChips(undefined), [])
+})
+
+test('groupReviews splits by state, groups by repo, drops empty sections', () => {
+  const reviews = [
+    { id: 1, owner: 'o', repo: 'a', pr_state: 'OPEN' },
+    { id: 2, owner: 'o', repo: 'b', pr_state: 'MERGED' },
+    { id: 3, owner: 'o', repo: 'a', pr_state: 'OPEN' },
+    { id: 4, owner: 'o', repo: 'a', pr_state: null },
+    { id: 5, owner: 'o', repo: 'b', pr_state: 'MERGED' },
+  ]
+  const sections = groupReviews(reviews)
+  assert.deepEqual(sections.map((section) => section.key), ['open', 'merged'])
+  assert.equal(sections[0].label, 'Open')
+  assert.equal(sections[0].count, 3)
+  assert.deepEqual(sections[0].repos.map((group) => group.repo), ['o/a'])
+  assert.deepEqual(sections[0].repos[0].reviews.map((review) => review.id), [1, 3, 4])
+  assert.deepEqual(sections[1].repos.map((group) => group.repo), ['o/b'])
+  assert.equal(sections[1].repos[0].reviews.length, 2)
+})
+
+test('groupReviews puts CLOSED (not merged) in its own section', () => {
+  const sections = groupReviews([{ id: 1, owner: 'o', repo: 'a', pr_state: 'CLOSED' }])
+  assert.deepEqual(sections.map((section) => section.key), ['closed'])
 })

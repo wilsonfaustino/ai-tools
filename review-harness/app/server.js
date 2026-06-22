@@ -3,7 +3,11 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join, dirname, normalize, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { listReviews, getReview, saveTriage } from './db.js'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { listReviews, getReview, saveTriage, updatePrMeta, deleteReview } from './db.js'
+
+const execFileAsync = promisify(execFile)
 
 const here = dirname(fileURLToPath(import.meta.url))
 const distDir = join(here, 'dist')
@@ -55,11 +59,38 @@ export function createServer() {
         const review = getReview(Number(detail[1]))
         return review ? sendJson(res, 200, review) : sendJson(res, 404, { error: 'not found' })
       }
+      if (detail && req.method === 'DELETE') {
+        const removed = deleteReview(Number(detail[1]))
+        return removed ? sendJson(res, 200, { deleted: removed }) : sendJson(res, 404, { error: 'not found' })
+      }
 
       const triage = path.match(/^\/api\/reviews\/(\d+)\/triage$/)
       if (triage && req.method === 'POST') {
         const parsed = JSON.parse(await readBody(req) || '{}')
         return sendJson(res, 200, saveTriage(Number(triage[1]), parsed.findings || []))
+      }
+
+      const refresh = path.match(/^\/api\/reviews\/(\d+)\/refresh$/)
+      if (refresh && req.method === 'POST') {
+        const id = Number(refresh[1])
+        const existing = getReview(id)
+        if (!existing) return sendJson(res, 404, { error: 'not found' })
+        const { owner, repo, pr_number: prNumber } = existing.review
+        try {
+          const { stdout } = await execFileAsync('gh', [
+            'pr', 'view', String(prNumber), '--repo', `${owner}/${repo}`,
+            '--json', 'state,reviewDecision,author,title,url',
+            '--jq', '{state,reviewDecision,author:.author.login,title,url}',
+          ])
+          const meta = JSON.parse(stdout)
+          updatePrMeta(id, {
+            pr_state: meta.state, review_decision: meta.reviewDecision || '',
+            author: meta.author, url: meta.url, title: meta.title,
+          })
+          return sendJson(res, 200, getReview(id))
+        } catch (err) {
+          return sendJson(res, 502, { error: `gh refresh failed: ${err && err.message ? err.message : err}` })
+        }
       }
 
       if (req.method === 'GET') return serveStatic(res, path)

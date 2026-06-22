@@ -60,6 +60,28 @@ class TestFoundation(DbTestCase):
         self.assertEqual(foreign_keys_on, 1)
         conn.close()
 
+    def test_reviews_has_pr_metadata_columns(self):
+        conn = self._connect()
+        cols = {row["name"] for row in conn.execute("PRAGMA table_info(reviews)")}
+        for col in ("author", "url", "pr_state", "review_decision", "pr_synced_at"):
+            self.assertIn(col, cols)
+
+    def test_migration_adds_columns_to_legacy_db(self):
+        import sqlite3
+        legacy = sqlite3.connect(self.db_path)
+        legacy.executescript(
+            "CREATE TABLE reviews (id INTEGER PRIMARY KEY, pr_number INTEGER NOT NULL,"
+            " owner TEXT NOT NULL, repo TEXT NOT NULL, branch TEXT, title TEXT,"
+            " head_sha TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'triaging',"
+            " created_at TEXT NOT NULL, updated_at TEXT NOT NULL,"
+            " UNIQUE(owner, repo, pr_number));"
+        )
+        legacy.close()
+        conn = self._connect()
+        cols = {row["name"] for row in conn.execute("PRAGMA table_info(reviews)")}
+        self.assertIn("pr_state", cols)
+        self.assertIn("pr_synced_at", cols)
+
 
 SAMPLE_PR = {
     "number": 423,
@@ -240,6 +262,47 @@ class TestGetDecided(DbTestCase):
                          self.db_path)
         self.assertIsNone(out["review"])
         self.assertEqual(out["decided"], [])
+
+
+class TestPrMetadataIngest(DbTestCase):
+    def _payload(self, **pr_overrides):
+        pr = {
+            "number": 5, "owner": "me", "repo": "r", "branch": "b",
+            "title": "t", "head_sha": "sha1", "author": "alice",
+            "url": "https://github.com/me/r/pull/5",
+            "pr_state": "OPEN", "review_decision": "REVIEW_REQUIRED",
+        }
+        pr.update(pr_overrides)
+        return {"pr": pr, "findings": []}
+
+    def test_insert_stores_pr_metadata(self):
+        run_script("insert_review.py", self._payload(), self.db_path)
+        conn = self._connect()
+        row = conn.execute(
+            "SELECT author, url, pr_state, review_decision, pr_synced_at"
+            " FROM reviews WHERE pr_number=5"
+        ).fetchone()
+        self.assertEqual(row["author"], "alice")
+        self.assertEqual(row["url"], "https://github.com/me/r/pull/5")
+        self.assertEqual(row["pr_state"], "OPEN")
+        self.assertEqual(row["review_decision"], "REVIEW_REQUIRED")
+        self.assertIsNotNone(row["pr_synced_at"])
+
+    def test_upsert_refreshes_pr_state(self):
+        run_script("insert_review.py", self._payload(), self.db_path)
+        run_script(
+            "insert_review.py",
+            self._payload(pr_state="MERGED", review_decision="APPROVED",
+                          head_sha="sha2"),
+            self.db_path,
+        )
+        conn = self._connect()
+        row = conn.execute(
+            "SELECT pr_state, review_decision, head_sha FROM reviews WHERE pr_number=5"
+        ).fetchone()
+        self.assertEqual(row["pr_state"], "MERGED")
+        self.assertEqual(row["review_decision"], "APPROVED")
+        self.assertEqual(row["head_sha"], "sha2")
 
 
 if __name__ == "__main__":

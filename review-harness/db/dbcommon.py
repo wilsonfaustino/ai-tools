@@ -7,6 +7,21 @@ from pathlib import Path
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 DEFAULT_DB = Path.home() / ".claude" / "review-harness" / "reviews.db"
 
+REVIEW_COLUMNS = [
+    ("author", "TEXT"),
+    ("url", "TEXT"),
+    ("pr_state", "TEXT"),
+    ("review_decision", "TEXT"),
+    ("pr_synced_at", "TEXT"),
+]
+
+
+def _migrate(conn):
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(reviews)")}
+    for name, col_type in REVIEW_COLUMNS:
+        if name not in existing:
+            conn.execute(f"ALTER TABLE reviews ADD COLUMN {name} {col_type}")
+
 
 def get_db_path():
     override = os.environ.get("REVIEW_HARNESS_DB")
@@ -23,6 +38,8 @@ def connect():
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA_PATH.read_text())
+    _migrate(conn)
+    conn.commit()
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA busy_timeout=5000")

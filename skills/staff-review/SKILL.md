@@ -36,8 +36,8 @@ Run all four checks in parallel:
 
 ```bash
 gh auth status
-gh pr view --json number,url,author,baseRefName \
-  --jq '{number, url, author: .author.login, base: .baseRefName}'
+gh pr view --json number,url,author,baseRefName,state,reviewDecision \
+  --jq '{number, url, author: .author.login, base: .baseRefName, state, reviewDecision}'
 # Check toolkit installed
 ls ~/.claude/plugins/*/pr-review-toolkit/commands/review-pr.md 2>/dev/null \
   || ls ~/.claude/skills/pr-review-toolkit/commands/review-pr.md 2>/dev/null
@@ -478,7 +478,9 @@ Build a JSON payload from the PR identity and the Section 3 findings, then:
 python3 ~/.claude/review-harness/db/insert_review.py <<'JSON'
 {
   "pr": {"number": <n>, "owner": "<owner>", "repo": "<repo>",
-         "branch": "<branch>", "title": "<title>", "head_sha": "<sha>"},
+         "branch": "<branch>", "title": "<title>", "head_sha": "<sha>",
+         "author": "<author>", "url": "<pr_url>",
+         "pr_state": "<state>", "review_decision": "<reviewDecision>"},
   "findings": [
     {"severity": "critical", "path": "src/db.ts", "line": 88,
      "in_diff": true, "body": "**[critical]** ..."}
@@ -488,7 +490,7 @@ JSON
 ```
 
 The script lives at `~/.claude/review-harness/db/insert_review.py`, installed
-beside the database at `~/.claude/review-harness/reviews.db`. Capture
+beside the database at `~/.claude/review-harness/reviews.db`. `author`, `url`, `pr_state`, and `review_decision` come from the pre-flight `gh pr view` fetch; `review_decision` may be empty. Capture
 `review_id` from stdout and report it: `Persisted as review <review_id>.`
 If the script exits non-zero, print `review-harness: persist skipped (<stderr>)`
 and continue.
