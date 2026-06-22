@@ -49,7 +49,7 @@ function Dashboard({ reviews, onOpen, onReload }) {
   async function refreshOpen(openReviews) {
     setRefreshing(true)
     try {
-      await Promise.all(openReviews.map((review) => refreshReview(review.id)))
+      await Promise.allSettled(openReviews.map((review) => refreshReview(review.id)))
       await onReload()
     } finally {
       setRefreshing(false)
