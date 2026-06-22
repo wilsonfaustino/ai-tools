@@ -88,6 +88,7 @@ function Dashboard({ reviews, onOpen, onReload }) {
               </div>
             </div>
           ))}
+          {section.hidden > 0 && <p className="more-count">+{section.hidden} more</p>}
         </section>
       ))}
     </div>

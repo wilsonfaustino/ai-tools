@@ -125,3 +125,22 @@ test('groupReviews puts CLOSED (not merged) in its own section', () => {
   const sections = groupReviews([{ id: 1, owner: 'o', repo: 'a', pr_state: 'CLOSED' }])
   assert.deepEqual(sections.map((section) => section.key), ['closed'])
 })
+
+test('groupReviews caps terminal sections to 10 across repos, open uncapped', () => {
+  const open = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, owner: 'o', repo: 'open', pr_state: 'OPEN' }))
+  const merged = Array.from({ length: 14 }, (_, i) =>
+    ({ id: 100 + i, owner: 'o', repo: i % 2 ? 'b' : 'a', pr_state: 'MERGED' }))
+  const sections = groupReviews([...open, ...merged])
+  const openSection = sections.find((section) => section.key === 'open')
+  const mergedSection = sections.find((section) => section.key === 'merged')
+
+  const shown = (section) => section.repos.reduce((total, group) => total + group.reviews.length, 0)
+
+  assert.equal(openSection.count, 12)
+  assert.equal(openSection.hidden, 0)
+  assert.equal(shown(openSection), 12)
+
+  assert.equal(mergedSection.count, 14)
+  assert.equal(mergedSection.hidden, 4)
+  assert.equal(shown(mergedSection), 10)
+})

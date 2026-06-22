@@ -216,3 +216,4 @@ kbd {
 .refresh-open:disabled { opacity: 0.6; cursor: default; }
 .repo-group { margin: 10px 0 16px; }
 .repo-header { color: #8892A0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; margin: 0 0 6px 2px; }
+.more-count { color: #646C7A; font-size: 12px; margin: 2px 0 0 2px; }

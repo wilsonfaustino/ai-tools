@@ -111,6 +111,8 @@ export function severityChips(bySeverity) {
     }))
 }
 
+export const TERMINAL_LIMIT = 10
+
 const STATE_SECTIONS = [
   { key: 'open', label: 'Open', match: (state) => state !== 'MERGED' && state !== 'CLOSED' },
   { key: 'merged', label: 'Merged', match: (state) => state === 'MERGED' },
@@ -120,13 +122,17 @@ const STATE_SECTIONS = [
 export function groupReviews(reviews) {
   return STATE_SECTIONS.map((section) => {
     const inSection = reviews.filter((review) => section.match(review.pr_state))
+    const capped = section.key === 'open' ? inSection : inSection.slice(0, TERMINAL_LIMIT)
     const byRepo = {}
-    for (const review of inSection) {
+    for (const review of capped) {
       const repo = `${review.owner}/${review.repo}`
       if (!byRepo[repo]) byRepo[repo] = []
       byRepo[repo].push(review)
     }
     const repos = Object.keys(byRepo).sort().map((repo) => ({ repo, reviews: byRepo[repo] }))
-    return { key: section.key, label: section.label, count: inSection.length, repos }
+    return {
+      key: section.key, label: section.label, count: inSection.length,
+      hidden: inSection.length - capped.length, repos,
+    }
   }).filter((section) => section.count > 0)
 }
