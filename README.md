@@ -26,6 +26,7 @@ Slash commands live in `commands/`.
 
 | Command | Description |
 |---|---|
+| [audit-skill](commands/audit-skill.md) | Statically audit an untrusted skill/plugin repo for supply-chain payloads before install; clones into an empty folder, never executes, withholds the install command on any finding |
 | [ccusage-html](commands/ccusage-html.md) | Run `npx ccusage` and render output as a standalone HTML report |
 | [handoff](commands/handoff.md) | Dump current session state to a named slot under `.claude/handoff/` for later `/pickup` |
 | [loosen-prompts](commands/loosen-prompts.md) | Merge a curated allow/deny preset of non-destructive commands into `.claude/settings.local.json` |
