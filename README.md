@@ -19,6 +19,9 @@ Personal Claude Code skills. Developed here, installed locally via `npx skills a
 | [validate-bug-fix](skills/validate-bug-fix/) | Drive Playwright against a stage env to prove a bug fix holds, capturing video/network evidence and posting a Jira verification comment |
 | [investigate-with-jira](skills/investigate-with-jira/) | Fetch a Jira bug ticket, fan out parallel read-only Sonnet agents (serena symbol search) across the codebase, and synthesize a ranked root-cause report. Investigation only |
 | [migrate-antd-v6](skills/migrate-antd-v6/) | Migrate one file/route off the deprecated antdV3 import to antd v6, proving no regression with before/after Playwright screenshots of the real route before committing. Reusable, stops at ready-to-commit |
+| [pr-follow-up](skills/pr-follow-up/) | Reviewer-side follow-up: validate whether author fixes address each review thread, then reply and resolve the good ones in a batch |
+| [obsidian](skills/obsidian/) | Obsidian knowledge architect: notes with frontmatter, canvas JSON, bases, folder structures, CSS snippets, Tasks queries |
+| [obsidian-daily-append](skills/obsidian-daily-append/) | Append a task item to today's Obsidian daily note from a PR URL, Jira ticket, or free text |
 
 ## Commands
 
@@ -27,11 +30,14 @@ Slash commands live in `commands/`.
 | Command | Description |
 |---|---|
 | [audit-skill](commands/audit-skill.md) | Statically audit an untrusted skill/plugin repo for supply-chain payloads before install; clones into an empty folder, never executes, withholds the install command on any finding |
+| [bic](commands/bic.md) | Find the commit that introduced a bug, given its fix, and print the GitHub commit URL |
 | [ccusage-html](commands/ccusage-html.md) | Run `npx ccusage` and render output as a standalone HTML report |
 | [handoff](commands/handoff.md) | Dump current session state to a named slot under `.claude/handoff/` for later `/pickup` |
 | [loosen-prompts](commands/loosen-prompts.md) | Merge a curated allow/deny preset of non-destructive commands into `.claude/settings.local.json` |
 | [pickup](commands/pickup.md) | Load a handoff slot, resolve references, brief the session, and wait for go-ahead |
 | [review-board](commands/review-board.md) | Triage PR review findings in a browser, output JSON for `/post-review --from` |
+| [review-flow](commands/review-flow.md) | Run the full PR review pipeline: staff-review, triage in the review-harness app, then post as pending review |
+| [review-start](commands/review-start.md) | Start a PR review end to end: log the PR to today's daily note, set up an isolated review worktree, then run staff-review |
 | [rca](commands/rca.md) | Draft a Root Cause Analysis from conversation context and post it to a Jira ticket field |
 | [sonar-pr](commands/sonar-pr.md) | Fetch open Sonar issues for the current PR and print a grouped severity table |
 | [wt-review](commands/wt-review.md) | Create or reuse an isolated worktree for reviewing a PR |
