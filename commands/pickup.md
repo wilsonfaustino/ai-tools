@@ -108,7 +108,17 @@ Pending: seeded <M> todos.
 
 Omit any section that was empty in the file or resolved to nothing. Do NOT paste the raw file content.
 
-### Step 6: Wait
+### Step 6: Suggest chat rename
+
+Derive a chat title from the frontmatter/body `# Intent`: take the Intent text, collapse to a single line, strip trailing punctuation, truncate to 60 chars. Then print one line:
+
+```
+Rename this chat: /rename <derived-title>
+```
+
+The agent cannot run `/rename` itself (agent output is not parsed as slash commands). Print the command for the user to run. Do NOT block on it.
+
+### Step 7: Wait
 
 Ask: "Ready to continue with: `<next action>`? (y/N)"
 
@@ -121,4 +131,5 @@ Ask: "Ready to continue with: `<next action>`? (y/N)"
 - Never auto-execute the next action. Always wait for explicit go-ahead.
 - Never paste the raw handoff into the briefing. Summarize.
 - Never fail on reference-resolution errors. Warn and continue.
+- Never run `/rename` yourself. Print it for the user; agent output is not executed as a slash command.
 - Never `cd`. Always use absolute paths in Bash commands. `cd` persists across tool calls and corrupts later operations.
