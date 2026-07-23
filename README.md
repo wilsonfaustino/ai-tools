@@ -20,6 +20,7 @@ Personal Claude Code skills. Developed here, installed locally via `npx skills a
 | [investigate-with-jira](skills/investigate-with-jira/) | Fetch a Jira bug ticket, fan out parallel read-only Sonnet agents (serena symbol search) across the codebase, and synthesize a ranked root-cause report. Investigation only |
 | [migrate-antd-v6](skills/migrate-antd-v6/) | Migrate one file/route off the deprecated antdV3 import to antd v6, proving no regression with before/after Playwright screenshots of the real route before committing. Reusable, stops at ready-to-commit |
 | [pr-follow-up](skills/pr-follow-up/) | Reviewer-side follow-up: validate whether author fixes address each review thread, then reply and resolve the good ones in a batch |
+| [land-approval](skills/land-approval/) | Final review-flow gate: validate it is safe to approve (not your own PR, no conflicts, no unresolved threads), then approve via gh with a brief friendly summary or no comment |
 | [obsidian](skills/obsidian/) | Obsidian knowledge architect: notes with frontmatter, canvas JSON, bases, folder structures, CSS snippets, Tasks queries |
 | [obsidian-daily-append](skills/obsidian-daily-append/) | Append a task item to today's Obsidian daily note from a PR URL, Jira ticket, or free text |
 
