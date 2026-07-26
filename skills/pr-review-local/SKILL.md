@@ -218,7 +218,8 @@ Print the following to stdout. Fields in `<>` are placeholders you fill in.
 > report by heading, matching a heading prefix (the `(<N>)` count suffix is
 > ignored), and then by a finding-bullet regex. The stable headings are
 > `### Security`, `### Critical`, `### Performance`, `### Warnings`,
-> `### Suggestions`, and `### Highlights`.
+> `### Suggestions`, `### Highlights`, `### Files With No Findings`, and
+> `### Errors`.
 >
 > Every finding bullet must match this grammar:
 > ```
@@ -227,8 +228,10 @@ Print the following to stdout. Fields in `<>` are placeholders you fill in.
 >
 > Rule: new output goes under a NEW heading. Never change the bullet grammar.
 > Any new heading needs a matching entry in `staff-review`'s "Bucket: local"
-> heading map, in the same commit. `### Highlights` is collated narratively
-> and carries no severity mapping, so this rule applies to findings headings.
+> heading map, in the same commit. `### Highlights`, `### Files With No
+> Findings`, and `### Errors` are collated narratively and carry no severity
+> mapping, so this rule applies only to the findings headings (Security,
+> Critical, Performance, Warnings, Suggestions).
 
 ```markdown
 ## Local PR Review - <branch> vs <RESOLVED_BASE>
