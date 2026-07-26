@@ -84,18 +84,25 @@ Annotation is done by a script, not by hand. Model arithmetic over thousands of
 diff lines drifts, and every drifted `[L<n>]` produces a citation that points at
 the wrong code.
 
+Each Bash tool call is a fresh shell: `$DIFF` and `$MERGE_BASE` from earlier
+steps do not exist here. Substitute the actual `MERGE_BASE` value recorded in
+Step 1.3 and the same exclude pathspecs from Step 1.5 (`<excludes>`), and run
+this as a single command so the regenerated diff pipes straight into the
+script and the annotated output lands in this step's own stdout:
+
 ```bash
 ANNOTATE=~/.claude/skills/pr-review-local/scripts/annotate_diff.py
-ANNOTATED_DIFF=$(printf '%s\n' "$DIFF" | python3 "$ANNOTATE")
+test -f "$ANNOTATE" || { echo "annotate_diff.py not found at $ANNOTATE; reinstall with npx skills add skills/pr-review-local" >&2; exit 1; }
+git diff $MERGE_BASE..HEAD -- . <excludes> | python3 "$ANNOTATE"
 ```
 
-If the script is missing, abort with `annotate_diff.py not found at $ANNOTATE; reinstall with npx skills add skills/pr-review-local`.
-If it exits non-zero, abort with its stderr message verbatim.
-Verify `$ANNOTATED_DIFF` is non-empty.
+If the `test -f` check fails, abort with the message it prints.
+If the pipeline exits non-zero for any other reason, abort with its stderr message verbatim.
+Verify the command's stdout is non-empty.
 
 Every added line in the result carries `+[L<n>] `, where `n` is that line's
-absolute number in the post-image of its file. Subagents receive
-`$ANNOTATED_DIFF`, never `$DIFF`.
+absolute number in the post-image of its file. This stdout is the annotated
+diff; pass it to the subagents in Step 2, never the raw diff from Step 1.5.
 
 ## Step 2: Launch Subagents in Parallel
 
