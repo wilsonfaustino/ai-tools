@@ -36,14 +36,28 @@ Run all four checks in parallel:
 
 ```bash
 gh auth status
-gh pr view --json number,url,author,baseRefName,state,reviewDecision \
-  --jq '{number, url, author: .author.login, base: .baseRefName, state, reviewDecision}'
+gh pr view --json number,url,author,baseRefName,headRefName,state,reviewDecision \
+  --jq '{number, url, author: .author.login, base: .baseRefName, head: .headRefName, state, reviewDecision}'
 # Check toolkit installed
 ls ~/.claude/plugins/*/pr-review-toolkit/commands/review-pr.md 2>/dev/null \
   || ls ~/.claude/skills/pr-review-toolkit/commands/review-pr.md 2>/dev/null
 # Check pr-review-local installed
 ls ~/.claude/skills/pr-review-local/SKILL.md 2>/dev/null
 ```
+
+### Branch assertion
+
+```bash
+git rev-parse --abbrev-ref HEAD   # CURRENT_BRANCH
+```
+
+If `CURRENT_BRANCH` does not equal `PR_HEAD_BRANCH`, this is a hard block. Abort with:
+
+`not on the PR branch (on <CURRENT_BRANCH>, PR head is <PR_HEAD_BRANCH>); run /wt-review <PR_NUMBER> to review in an isolated worktree, or check the branch out yourself`
+
+Do NOT run `gh pr checkout`. This skill is read-only and must not mutate the
+owner's worktree. Every fan-out task diffs the branch that is already checked
+out, so the branch must be correct before fan-out starts.
 
 ### Diff size gate
 
@@ -74,6 +88,7 @@ Apply tiers:
 - No open PR for the current branch
 - `pr-review-toolkit` is not installed (core dependency; the skill cannot
   function without it)
+- The current branch is not the PR head branch (see Branch assertion)
 
 ### Soft warnings
 
@@ -96,10 +111,10 @@ this context in the task:
 > call any API or tool that writes to the PR.
 >
 > IMPORTANT: This review targets the PR diff, not the uncommitted working
-> tree. Run `gh pr checkout <PR_NUMBER>` first if the current branch does not
-> already match the PR branch, so that `git diff` reflects the PR changes
-> against the base. If `gh pr checkout` fails or the branch is already
-> checked out, fall back to `git diff origin/<BASE_BRANCH>...HEAD`.
+> tree. The PR branch is already checked out and verified in pre-flight. Use
+> `git diff origin/<BASE_BRANCH>...HEAD`. Do NOT run `gh pr checkout` or
+> otherwise change branches: sibling tasks are reading the same worktree
+> concurrently.
 >
 > Act as a staff engineer reviewing this PR. For each finding:
 > - Categorize by severity: critical, warning, nit, suggestion
@@ -504,6 +519,7 @@ and continue.
 | Pre-flight fails (auth, no PR) | Show error, stop |
 | Toolkit missing | Show error, stop (hard block) |
 | Toolkit task fails | Show error, stop (hard dependency) |
+| Current branch is not the PR head branch | Hard block, abort with the /wt-review hint |
 | pr-review-local not installed | Note in header, `LOCAL_ENABLED=false`, continue |
 | pr-review-local size gate abort | Note skip reason in header, continue |
 | pr-review-local task fails | Note failure in header, continue |
