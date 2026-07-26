@@ -9,33 +9,30 @@ import sys
 
 HUNK = re.compile(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@')
 
-# Lines that sit outside a hunk body's line-number space. Without this guard a
-# `+++` header would be annotated and a `\ No newline` marker would advance the
-# counter, shifting every annotation after it.
-META = (
-    '+++', '---', 'diff --git', 'index ', 'new file', 'deleted file',
-    'similarity index', 'rename ', 'old mode', 'new mode', 'Binary files',
-    '\\',
-)
-
 
 def annotate(lines):
-    line_no, saw_hunk = 0, False
+    # Content-fragile prefix matching (e.g. a bare '+++' string) misfires on an
+    # added line whose own text happens to start with '++' or '--'. Tracking
+    # whether we are inside a hunk body, and dispatching on the first
+    # character only while inside one, avoids that class of false match.
+    line_no, saw_hunk, in_hunk = 0, False, False
     for raw in lines:
         hunk = HUNK.match(raw)
         if hunk:
-            line_no, saw_hunk = int(hunk.group(1)), True
+            line_no, saw_hunk, in_hunk = int(hunk.group(1)), True, True
             yield raw
-        elif raw.startswith(META):
+        elif raw.startswith('diff --git'):
+            in_hunk = False
             yield raw
-        elif raw.startswith('+'):
+        elif not in_hunk:
+            yield raw
+        elif raw[0] == '+':
             yield f'+[L{line_no}] {raw[1:]}'
             line_no += 1
-        elif raw.startswith('-'):
+        elif raw[0] in '-\\':
             yield raw
         else:
-            if saw_hunk:
-                line_no += 1
+            line_no += 1
             yield raw
     if not saw_hunk:
         sys.exit('annotate_diff: no hunk headers found in input')

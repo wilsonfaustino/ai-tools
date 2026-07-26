@@ -24,3 +24,13 @@ index 3333333..4444444 100644
 +[L2] const second = 2
  const third = 3
 \ No newline at end of file
+diff --git a/src/c.c b/src/c.c
+index 5555555..6666666 100644
+--- a/src/c.c
++++ b/src/c.c
+@@ -1,3 +1,4 @@
+ int i = 0;
+---counter;
++[L2] i++;
++[L3] ++i;
+ int j = 0;

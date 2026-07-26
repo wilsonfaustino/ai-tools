@@ -176,7 +176,7 @@ git commit -m "fix(staff-review): assert PR branch in pre-flight, drop per-task 
 
 - [ ] **Step 1: Write the fixture pair (the failing test)**
 
-Create `skills/pr-review-local/fixtures/sample.diff`. It covers the four cases that break naive counters: a hunk not starting at line 1, a removal-only hunk, a second file, and a `\ No newline at end of file` marker.
+Create `skills/pr-review-local/fixtures/sample.diff`. It covers the five cases that break naive counters or content-fragile prefix matching: a hunk not starting at line 1, a removal-only hunk, a second file, a `\ No newline at end of file` marker, and an added line whose own text starts with `++` (plus a removed line whose own text starts with `--`, which is harmless but must still be handled correctly rather than by accident).
 
 ```diff
 diff --git a/src/a.ts b/src/a.ts
@@ -205,9 +205,19 @@ index 3333333..4444444 100644
 +const second = 2
  const third = 3
 \ No newline at end of file
+diff --git a/src/c.c b/src/c.c
+index 5555555..6666666 100644
+--- a/src/c.c
++++ b/src/c.c
+@@ -1,3 +1,4 @@
+ int i = 0;
+---counter;
++i++;
++++i;
+ int j = 0;
 ```
 
-Create `skills/pr-review-local/fixtures/sample.annotated.diff` with the expected output. Note `[L12]` and `[L13]` (two context lines consumed 10 and 11 first), `[L2]` in the second file, and that the removal-only hunk and the no-newline marker produce no annotation and consume no line number:
+Create `skills/pr-review-local/fixtures/sample.annotated.diff` with the expected output. Note `[L12]` and `[L13]` (two context lines consumed 10 and 11 first), `[L2]` in the second file, that the removal-only hunk and the no-newline marker produce no annotation and consume no line number, and that in the third file `---counter;` (a removed line) is untouched while `+++i;` (an added line) still gets `[L3]` despite its own text starting with `++`:
 
 ```diff
 diff --git a/src/a.ts b/src/a.ts
@@ -236,6 +246,16 @@ index 3333333..4444444 100644
 +[L2] const second = 2
  const third = 3
 \ No newline at end of file
+diff --git a/src/c.c b/src/c.c
+index 5555555..6666666 100644
+--- a/src/c.c
++++ b/src/c.c
+@@ -1,3 +1,4 @@
+ int i = 0;
+---counter;
++[L2] i++;
++[L3] ++i;
+ int j = 0;
 ```
 
 Create `skills/pr-review-local/scripts/test_annotate_diff.sh`:
@@ -286,33 +306,30 @@ import sys
 
 HUNK = re.compile(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@')
 
-# Lines that sit outside a hunk body's line-number space. Without this guard a
-# `+++` header would be annotated and a `\ No newline` marker would advance the
-# counter, shifting every annotation after it.
-META = (
-    '+++', '---', 'diff --git', 'index ', 'new file', 'deleted file',
-    'similarity index', 'rename ', 'old mode', 'new mode', 'Binary files',
-    '\\',
-)
-
 
 def annotate(lines):
-    line_no, saw_hunk = 0, False
+    # Content-fragile prefix matching (e.g. a bare '+++' string) misfires on an
+    # added line whose own text happens to start with '++' or '--'. Tracking
+    # whether we are inside a hunk body, and dispatching on the first
+    # character only while inside one, avoids that class of false match.
+    line_no, saw_hunk, in_hunk = 0, False, False
     for raw in lines:
         hunk = HUNK.match(raw)
         if hunk:
-            line_no, saw_hunk = int(hunk.group(1)), True
+            line_no, saw_hunk, in_hunk = int(hunk.group(1)), True, True
             yield raw
-        elif raw.startswith(META):
+        elif raw.startswith('diff --git'):
+            in_hunk = False
             yield raw
-        elif raw.startswith('+'):
+        elif not in_hunk:
+            yield raw
+        elif raw[0] == '+':
             yield f'+[L{line_no}] {raw[1:]}'
             line_no += 1
-        elif raw.startswith('-'):
+        elif raw[0] in '-\\':
             yield raw
         else:
-            if saw_hunk:
-                line_no += 1
+            line_no += 1
             yield raw
     if not saw_hunk:
         sys.exit('annotate_diff: no hunk headers found in input')
