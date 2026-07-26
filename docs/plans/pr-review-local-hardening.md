@@ -420,7 +420,11 @@ cd ~/www/dot/ai-tools
 sed -n '205,240p' skills/staff-review/SKILL.md
 ```
 
-Copy the finding-bullet regex exactly as written there into Step 2 below. Do not retype it from memory.
+Copy the finding-bullet regex exactly as written there into Step 2's note
+below, as a fenced code block inside the blockquote. Do not retype it from
+memory. The note is the producer-side copy, so someone editing
+`pr-review-local` must be able to learn the bullet grammar without opening
+`staff-review`.
 
 - [ ] **Step 2: Add the contract note to `pr-review-local`**
 
@@ -433,9 +437,15 @@ In `skills/pr-review-local/SKILL.md`, insert directly above the Step 3 output te
 > `### Security`, `### Critical`, `### Performance`, `### Warnings`,
 > `### Suggestions`, and `### Highlights`.
 >
+> Every finding bullet must match this grammar:
+> ```
+> ^- `([^`]+)` \[(.+)\]$
+> ```
+>
 > Rule: new output goes under a NEW heading. Never change the bullet grammar.
 > Any new heading needs a matching entry in `staff-review`'s "Bucket: local"
-> heading map, in the same commit.
+> heading map, in the same commit. `### Highlights` is collated narratively
+> and carries no severity mapping, so this rule applies to findings headings.
 ```
 
 - [ ] **Step 3: Add the back-pointer to `staff-review`**

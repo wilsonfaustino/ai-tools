@@ -213,9 +213,15 @@ Print the following to stdout. Fields in `<>` are placeholders you fill in.
 > `### Security`, `### Critical`, `### Performance`, `### Warnings`,
 > `### Suggestions`, and `### Highlights`.
 >
+> Every finding bullet must match this grammar:
+> ```
+> ^- `([^`]+)` \[(.+)\]$
+> ```
+>
 > Rule: new output goes under a NEW heading. Never change the bullet grammar.
 > Any new heading needs a matching entry in `staff-review`'s "Bucket: local"
-> heading map, in the same commit.
+> heading map, in the same commit. `### Highlights` is collated narratively
+> and carries no severity mapping, so this rule applies to findings headings.
 
 ```markdown
 ## Local PR Review - <branch> vs <RESOLVED_BASE>
