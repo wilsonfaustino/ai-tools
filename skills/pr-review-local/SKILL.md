@@ -207,6 +207,16 @@ From `$CHANGED_FILES`, identify files that received zero findings across all suc
 
 Print the following to stdout. Fields in `<>` are placeholders you fill in.
 
+> **Output contract (consumed by `staff-review`).** `staff-review` parses this
+> report by heading, matching a heading prefix (the `(<N>)` count suffix is
+> ignored), and then by a finding-bullet regex. The stable headings are
+> `### Security`, `### Critical`, `### Performance`, `### Warnings`,
+> `### Suggestions`, and `### Highlights`.
+>
+> Rule: new output goes under a NEW heading. Never change the bullet grammar.
+> Any new heading needs a matching entry in `staff-review`'s "Bucket: local"
+> heading map, in the same commit.
+
 ```markdown
 ## Local PR Review - <branch> vs <RESOLVED_BASE>
 

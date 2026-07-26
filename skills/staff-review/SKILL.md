@@ -248,6 +248,11 @@ Map headings to severity:
 Set `source` to `local:<heading-slug>` (e.g., `local:security`,
 `local:performance`).
 
+This heading map and the finding-bullet regex above are the contract with
+`pr-review-local`. It is documented on the producer side in
+`skills/pr-review-local/SKILL.md`, Step 3. Adding a heading here requires the
+matching edit there, in the same commit.
+
 ### Bucket: automated-external
 
 From `REVIEW_COMMENTS` and `INLINE_COMMENTS`, extract entries where
