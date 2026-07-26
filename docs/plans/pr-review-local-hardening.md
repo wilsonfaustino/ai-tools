@@ -4,7 +4,7 @@
 
 **Goal:** Stop `staff-review` from producing confident findings about code that is not in the PR, and stop the model from doing diff line arithmetic by hand.
 
-**Architecture:** Three independent edits. Task 1 makes `staff-review` assert the PR branch is checked out in pre-flight instead of having a fan-out subtask check it out mid-run (removes both the wrong-diff bug and the same-worktree race, without adding ref-passing plumbing or mutating the worktree). Task 2 moves the `[L<n>]` diff annotation algorithm out of `pr-review-local`'s prose and into a Python script with a golden fixture. Task 3 records the implicit output contract between the two skills as comments in both files.
+**Architecture:** Three independent edits. Task 1 makes `staff-review` assert the PR branch is checked out in pre-flight instead of having a fan-out subtask check it out mid-run (removes the same-worktree checkout race and adds defense in depth against branch-name mismatches and detached HEAD, without adding ref-passing plumbing or mutating the worktree). Task 2 moves the `[L<n>]` diff annotation algorithm out of `pr-review-local`'s prose and into a Python script with a golden fixture. Task 3 records the implicit output contract between the two skills as comments in both files.
 
 **Tech Stack:** Markdown skills (`SKILL.md`), Python 3 stdlib, `gh` CLI, git.
 
@@ -30,13 +30,14 @@ Verified premises (2026-07-26):
 - `skills/staff-review/SKILL.md:99-102` tells fan-out Task 1 to run `gh pr checkout <PR_NUMBER>`; Task 2 gets no equivalent instruction.
 - All three fan-out tasks launch in one message (`skills/staff-review/SKILL.md:87`), same worktree.
 - Only `staff-review` consumes `pr-review-local`'s output. Its parser is the heading map at `skills/staff-review/SKILL.md:227-231` plus the bullet regex in "Bucket: local".
+- `skills/staff-review/SKILL.md:39` runs `gh pr view` with no PR number, which `gh` resolves from the current branch. `head` is therefore already almost always the current branch; the pre-existing "No open PR for the current branch" hard block already catches the case where no PR resolves at all.
 
 Two consequences:
 
-1. Running `/staff-review` from a branch that is not the PR head branch makes `pr-review-local` diff the wrong branch and emit confident `local:*` findings about code not in the PR.
+1. The real remaining exposure is narrower than "wrong branch entirely": a local branch whose name differs from the remote head branch it tracks (checked out via `git checkout -b <local-name> origin/<pr-head>`), or a detached HEAD, both resolve a real PR through `gh pr view` but leave `CURRENT_BRANCH` mismatched or unset, with nothing to catch it before fan-out.
 2. Task 1's `gh pr checkout` can land while Task 2 is mid `git diff`, in the same worktree, making output nondeterministic.
 
-Both die if the PR branch is guaranteed checked out before fan-out and no fan-out task changes branches. `/wt-review` already puts the reviewer in a worktree with the PR branch checked out, so asserting is cheaper than checking out, and it keeps the skill honestly read-only.
+Both die if the PR branch is guaranteed checked out before fan-out and no fan-out task changes branches. `/wt-review` already puts the reviewer in a worktree with the PR branch checked out, so asserting is cheaper than checking out, and it keeps the skill honestly read-only. The fan-out race (2) is this branch's headline fix; the branch-mismatch/detached-HEAD assertion (1) is defense in depth.
 
 ## Non-goals
 
@@ -144,11 +145,17 @@ Expected: the first grep prints only the two prohibition mentions added in Steps
 
 - [ ] **Step 6: Manual acceptance check**
 
-From `main`, with an open PR on another branch, run `/staff-review`.
-Expected: aborts in pre-flight with the `not on the PR branch` message, before any fan-out task launches.
+Check out a local branch under a different name that tracks the PR's head branch:
 
-Then run `/wt-review <PR_NUMBER>` and `/staff-review` inside the worktree.
-Expected: proceeds, and every file cited by a `local:*` finding appears in `gh pr diff --name-only`. Verify by comparing the two file lists; overlap must be 100%.
+```bash
+git checkout -b local-alias origin/<pr-head-branch>
+```
+
+Run `/staff-review`.
+Expected: pre-flight resolves the PR via the tracked upstream, but the branch assertion fails because `CURRENT_BRANCH` (`local-alias`) does not equal `PR_HEAD_BRANCH`; aborts with the `not on the PR branch` message before any fan-out task launches.
+
+Then check out the PR head branch itself (or run `/wt-review <PR_NUMBER>`) and run `/staff-review` again.
+Expected: the assertion passes, and every file cited by a `local:*` finding appears in `gh pr diff --name-only`. Verify by comparing the two file lists; overlap must be 100%.
 
 - [ ] **Step 7: Commit**
 
@@ -363,7 +370,7 @@ Pick five annotations and confirm each `[L<n>]` matches `sed -n '<n>p' <file>` i
 
 - [ ] **Step 6: Rewrite Step 1.7 to call the script**
 
-In `skills/pr-review-local/SKILL.md`, replace all of `### 1.7 Pre-annotate the diff` (currently lines 81-93) with:
+In `skills/pr-review-local/SKILL.md`, replace all of `### 1.7 Pre-annotate the diff` with a version that is a single self-contained command: each Bash tool call is a fresh shell, so `$DIFF` and `$MERGE_BASE` from earlier steps do not survive into this step. The rewritten step regenerates the diff and pipes it straight into the script in one command, substituting the actual `MERGE_BASE` value recorded in Step 1.3 and reusing the same `<excludes>` pathspecs from Step 1.5, with an explicit `test -f` gate ahead of the pipe so the "script missing" and "script exited non-zero" abort messages do not collide:
 
 ```markdown
 ### 1.7 Pre-annotate the diff
@@ -372,18 +379,25 @@ Annotation is done by a script, not by hand. Model arithmetic over thousands of
 diff lines drifts, and every drifted `[L<n>]` produces a citation that points at
 the wrong code.
 
+Each Bash tool call is a fresh shell: `$DIFF` and `$MERGE_BASE` from earlier
+steps do not exist here. Substitute the actual `MERGE_BASE` value recorded in
+Step 1.3 and the same exclude pathspecs from Step 1.5 (`<excludes>`), and run
+this as a single command so the regenerated diff pipes straight into the
+script and the annotated output lands in this step's own stdout:
+
 ```bash
 ANNOTATE=~/.claude/skills/pr-review-local/scripts/annotate_diff.py
-ANNOTATED_DIFF=$(printf '%s\n' "$DIFF" | python3 "$ANNOTATE")
+test -f "$ANNOTATE" || { echo "annotate_diff.py not found at $ANNOTATE; reinstall with npx skills add skills/pr-review-local" >&2; exit 1; }
+git diff $MERGE_BASE..HEAD -- . <excludes> | python3 "$ANNOTATE"
 ```
 
-If the script is missing, abort with `annotate_diff.py not found at $ANNOTATE; reinstall with npx skills add skills/pr-review-local`.
-If it exits non-zero, abort with its stderr message verbatim.
-Verify `$ANNOTATED_DIFF` is non-empty.
+If the `test -f` check fails, abort with the message it prints.
+If the pipeline exits non-zero for any other reason, abort with its stderr message verbatim.
+Verify the command's stdout is non-empty.
 
 Every added line in the result carries `+[L<n>] `, where `n` is that line's
-absolute number in the post-image of its file. Subagents receive
-`$ANNOTATED_DIFF`, never `$DIFF`.
+absolute number in the post-image of its file. This stdout is the annotated
+diff; pass it to the subagents in Step 2, never the raw diff from Step 1.5.
 ```
 
 - [ ] **Step 7: Commit**
@@ -435,7 +449,8 @@ In `skills/pr-review-local/SKILL.md`, insert directly above the Step 3 output te
 > report by heading, matching a heading prefix (the `(<N>)` count suffix is
 > ignored), and then by a finding-bullet regex. The stable headings are
 > `### Security`, `### Critical`, `### Performance`, `### Warnings`,
-> `### Suggestions`, and `### Highlights`.
+> `### Suggestions`, `### Highlights`, `### Files With No Findings`, and
+> `### Errors`.
 >
 > Every finding bullet must match this grammar:
 > ```
@@ -444,8 +459,10 @@ In `skills/pr-review-local/SKILL.md`, insert directly above the Step 3 output te
 >
 > Rule: new output goes under a NEW heading. Never change the bullet grammar.
 > Any new heading needs a matching entry in `staff-review`'s "Bucket: local"
-> heading map, in the same commit. `### Highlights` is collated narratively
-> and carries no severity mapping, so this rule applies to findings headings.
+> heading map, in the same commit. `### Highlights`, `### Files With No
+> Findings`, and `### Errors` are collated narratively and carry no severity
+> mapping, so this rule applies only to the findings headings (Security,
+> Critical, Performance, Warnings, Suggestions).
 ```
 
 - [ ] **Step 3: Add the back-pointer to `staff-review`**
