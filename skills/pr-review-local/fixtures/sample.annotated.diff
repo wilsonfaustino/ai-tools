@@ -1,0 +1,26 @@
+diff --git a/src/a.ts b/src/a.ts
+index 1111111..2222222 100644
+--- a/src/a.ts
++++ b/src/a.ts
+@@ -10,6 +10,8 @@ export function alpha() {
+   const x = 1
+   const y = 2
++[L12]   const z = 3
++[L13]   const w = 4
+   return x + y
+ }
+ 
+@@ -30,7 +32,6 @@ export function beta() {
+   const a = 1
+-  const b = 2
+   return a
+ }
+diff --git a/src/b.ts b/src/b.ts
+index 3333333..4444444 100644
+--- a/src/b.ts
++++ b/src/b.ts
+@@ -1,3 +1,4 @@
+ const first = 1
++[L2] const second = 2
+ const third = 3
+\ No newline at end of file

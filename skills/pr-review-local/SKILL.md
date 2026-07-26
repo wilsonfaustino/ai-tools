@@ -80,17 +80,22 @@ If `DIFF_LINES > 3000` OR `DIFF_FILES > 40`: abort with `diff too large for reli
 
 ### 1.7 Pre-annotate the diff
 
-Transform `$DIFF` by walking each hunk and prefixing every `+` line (excluding `+++` file headers) with `[L<n>]` where `<n>` is the absolute line number of that added line in the post-image of the file.
+Annotation is done by a script, not by hand. Model arithmetic over thousands of
+diff lines drifts, and every drifted `[L<n>]` produces a citation that points at
+the wrong code.
 
-Algorithm:
-- Parse `@@ -a,b +c,d @@` headers; extract `c` as the starting new-file line number for the hunk.
-- Initialize a counter `line = c`.
-- For each line in the hunk:
-  - If it starts with `+` (and not `+++`): replace `+` with `+[L<line>] ` (preserving the rest). Increment `line`.
-  - If it starts with ` ` (context): increment `line`.
-  - If it starts with `-`: do not increment.
+```bash
+ANNOTATE=~/.claude/skills/pr-review-local/scripts/annotate_diff.py
+ANNOTATED_DIFF=$(printf '%s\n' "$DIFF" | python3 "$ANNOTATE")
+```
 
-Record the annotated diff as `$ANNOTATED_DIFF`. Verify it is non-empty. Subagents receive `$ANNOTATED_DIFF`, not `$DIFF`.
+If the script is missing, abort with `annotate_diff.py not found at $ANNOTATE; reinstall with npx skills add skills/pr-review-local`.
+If it exits non-zero, abort with its stderr message verbatim.
+Verify `$ANNOTATED_DIFF` is non-empty.
+
+Every added line in the result carries `+[L<n>] `, where `n` is that line's
+absolute number in the post-image of its file. Subagents receive
+`$ANNOTATED_DIFF`, never `$DIFF`.
 
 ## Step 2: Launch Subagents in Parallel
 
