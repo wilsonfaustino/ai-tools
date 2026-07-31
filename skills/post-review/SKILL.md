@@ -163,6 +163,21 @@ labels from source findings to nearest match.
 When user picks `(e)dit`, preserve the tag. If their rewrite drops it, re-prepend
 before queuing.
 
+### No source attribution
+
+A comment body must never name the agent, tool, or skill that produced the
+finding. Before queuing any comment, on every path (interactive, `--from`,
+`--from-db`), strip:
+
+- a trailing `Sources:` or `Source:` line (e.g. `Sources: toolkit:code-reviewer, local:warning`)
+- a leading or trailing bracketed agent tag (e.g. `[silent-failure-hunter]`)
+- any other `toolkit:<name>` / `local:<name>` attribution left in the text
+
+The severity tag stays. It describes the finding, not its producer.
+
+Attribution is triage metadata: it lives in the review-harness `findings.sources`
+column and renders in the triage app. It does not belong on the PR.
+
 ## Noise Threshold
 
 After Parse Context, count total findings.

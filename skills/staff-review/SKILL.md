@@ -503,11 +503,22 @@ python3 ~/.claude/review-harness/db/insert_review.py <<'JSON'
          "pr_state": "<state>", "review_decision": "<reviewDecision>"},
   "findings": [
     {"severity": "critical", "path": "src/db.ts", "line": 88,
-     "in_diff": true, "body": "**[critical]** ..."}
+     "in_diff": true, "body": "**[critical]** ...",
+     "sources": "toolkit:code-reviewer, local:security"}
   ]
 }
 JSON
 ```
+
+`sources` is the finding's `Source` cell verbatim: a comma-separated string of
+every contributing source, or the single source for an unmerged finding. Omit
+it only when the finding has no source (inline-analysis `New` findings).
+
+`body` carries the finding text ONLY. Never append a `Sources:` line, a
+`[<agent-name>]` tag, or any other naming of the agent, tool, or skill that
+produced the finding. Source attribution belongs in the `sources` field and in
+the Section 3 `Source` column, both of which stay local. The body is what gets
+posted to GitHub.
 
 The script lives at `~/.claude/review-harness/db/insert_review.py`, installed
 beside the database at `~/.claude/review-harness/reviews.db`. `author`, `url`, `pr_state`, and `review_decision` come from the pre-flight `gh pr view` fetch; `review_decision` may be empty. Capture
