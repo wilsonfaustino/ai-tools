@@ -57,6 +57,14 @@ export default function FindingCard({ finding, gitRef, focused, expanded, onFocu
 
       <p className="finding-body" onClick={toggleEditor}>{renderBody(finding.body)}</p>
 
+      {finding.sources && (
+        <div className="finding-sources">
+          {finding.sources.split(',').map((source) => source.trim()).filter(Boolean).map((source) => (
+            <span key={source} className="source-pill">{source}</span>
+          ))}
+        </div>
+      )}
+
       {expanded && (
         <textarea
           className="body-editor"

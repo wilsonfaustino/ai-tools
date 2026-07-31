@@ -131,6 +131,11 @@ kbd {
 .badge-ood { font-size: 0.7rem; padding: 1px 6px; border-radius: 4px; background: #553; color: #fc6; flex: none; }
 .status { font-size: 12px; font-weight: 600; font-family: inherit; flex: none; margin-left: auto; }
 .finding-body { margin: 0; font-size: 14px; line-height: 1.66; color: #C2C8D2; cursor: pointer; }
+.finding-sources { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.source-pill {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; padding: 1px 6px;
+  border-radius: 4px; background: #1B1E26; color: #7C8798; border: 1px solid #23262E;
+}
 .finding-body .body-code {
   font-family: 'IBM Plex Mono', monospace; background: #1B1E26; color: #9FC8FF;
   padding: 1px 5px; border-radius: 4px; font-size: 12.5px;

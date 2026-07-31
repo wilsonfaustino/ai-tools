@@ -82,6 +82,22 @@ class TestFoundation(DbTestCase):
         self.assertIn("pr_state", cols)
         self.assertIn("pr_synced_at", cols)
 
+    def test_migration_adds_sources_to_legacy_findings(self):
+        import sqlite3
+        legacy = sqlite3.connect(self.db_path)
+        legacy.executescript(
+            "CREATE TABLE findings (id INTEGER PRIMARY KEY, review_id INTEGER NOT NULL,"
+            " severity TEXT NOT NULL, path TEXT NOT NULL, line INTEGER NOT NULL,"
+            " in_diff INTEGER NOT NULL DEFAULT 1, body TEXT NOT NULL,"
+            " decision TEXT NOT NULL DEFAULT 'pending', gh_comment_id INTEGER,"
+            " posted_at TEXT, addressed_status TEXT NOT NULL DEFAULT 'open',"
+            " addressed_commit_sha TEXT, updated_at TEXT NOT NULL);"
+        )
+        legacy.close()
+        conn = self._connect()
+        cols = {row["name"] for row in conn.execute("PRAGMA table_info(findings)")}
+        self.assertIn("sources", cols)
+
 
 SAMPLE_PR = {
     "number": 423,
@@ -108,6 +124,23 @@ class TestInsertReview(DbTestCase):
         )
         self.assertIsInstance(out["review_id"], int)
         self.assertEqual(len(out["finding_ids"]), 2)
+
+    def test_sources_persisted_and_optional(self):
+        merged = {"severity": "warning", "path": "src/carousel.tsx", "line": 150,
+                  "in_diff": True, "body": "**[warning]** Duplicate visibility guard.",
+                  "sources": "toolkit:silent-failure-hunter, local:warning"}
+        out = run_script(
+            "insert_review.py",
+            {"pr": SAMPLE_PR, "findings": [merged] + SAMPLE_FINDINGS},
+            self.db_path,
+        )
+        conn = self._connect()
+        rows = conn.execute(
+            "SELECT path, sources FROM findings WHERE review_id=? ORDER BY id",
+            (out["review_id"],),
+        ).fetchall()
+        self.assertEqual(rows[0]["sources"], merged["sources"])
+        self.assertIsNone(rows[1]["sources"])
 
     def test_rerun_dedups_findings_and_updates_sha(self):
         run_script("insert_review.py",

@@ -61,12 +61,13 @@ def main():
                 continue
             cursor = conn.execute(
                 "INSERT INTO findings"
-                " (review_id, severity, path, line, in_diff, body, updated_at)"
-                " VALUES (?,?,?,?,?,?,?)",
+                " (review_id, severity, path, line, in_diff, body, sources,"
+                "  updated_at)"
+                " VALUES (?,?,?,?,?,?,?,?)",
                 (review_id, finding["severity"], finding["path"],
                  int(finding["line"]),
                  1 if finding.get("in_diff", True) else 0,
-                 finding["body"], timestamp),
+                 finding["body"], finding.get("sources"), timestamp),
             )
             finding_ids.append(cursor.lastrowid)
             seen_keys.add(key)

@@ -15,12 +15,17 @@ REVIEW_COLUMNS = [
     ("pr_synced_at", "TEXT"),
 ]
 
+FINDING_COLUMNS = [
+    ("sources", "TEXT"),
+]
+
 
 def _migrate(conn):
-    existing = {row["name"] for row in conn.execute("PRAGMA table_info(reviews)")}
-    for name, col_type in REVIEW_COLUMNS:
-        if name not in existing:
-            conn.execute(f"ALTER TABLE reviews ADD COLUMN {name} {col_type}")
+    for table, columns in (("reviews", REVIEW_COLUMNS), ("findings", FINDING_COLUMNS)):
+        existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+        for name, col_type in columns:
+            if name not in existing:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {col_type}")
 
 
 def get_db_path():

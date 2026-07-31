@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS findings (
   line                 INTEGER NOT NULL,
   in_diff              INTEGER NOT NULL DEFAULT 1,
   body                 TEXT NOT NULL,
+  sources              TEXT,
   decision             TEXT NOT NULL DEFAULT 'pending',
   gh_comment_id        INTEGER,
   posted_at            TEXT,
