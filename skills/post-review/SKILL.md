@@ -31,7 +31,7 @@ Steps:
 
 The `bundle` key is reserved for future noise-threshold support. Ignore it when null.
 
-The standard invocation (`/post-review` with no `--from`) is unchanged. The three paths (default, `--from`, `--from-db`) share Post Pending Review, Error Handling, and Summary.
+The standard invocation (`/post-review` with no `--from`) is unchanged. The three paths (default, `--from`, `--from-db`) share Comment Format > No source attribution, Post Pending Review, Error Handling, and Summary.
 
 ## From DB input (--from-db)
 
@@ -78,7 +78,8 @@ JSON
 7. Run Step 3 Report, then Summary and Verdict unchanged.
 
 The standard invocation and `--from <path>` are unchanged. `--from-db` shares
-Post Pending Review, Error Handling, Summary, and Verdict.
+Comment Format > No source attribution, Post Pending Review, Error Handling,
+Summary, and Verdict.
 
 ## Pre-flight
 
@@ -165,13 +166,17 @@ before queuing.
 
 ### No source attribution
 
-A comment body must never name the agent, tool, or skill that produced the
-finding. Before queuing any comment, on every path (interactive, `--from`,
+A comment body must never state which agent, tool, or skill produced the
+finding. Before queuing any comment, on every path (default, `--from`,
 `--from-db`), strip:
 
 - a trailing `Sources:` or `Source:` line (e.g. `Sources: toolkit:code-reviewer, local:warning`)
 - a leading or trailing bracketed agent tag (e.g. `[silent-failure-hunter]`)
-- any other `toolkit:<name>` / `local:<name>` attribution left in the text
+
+Strip only attribution *about this finding*. A body that discusses a source
+name as subject matter keeps it: reviewing this repo routinely produces
+findings whose text legitimately quotes `toolkit:code-reviewer` or
+`local:security`. Judge by role, not by pattern match.
 
 The severity tag stays. It describes the finding, not its producer.
 
@@ -417,6 +422,7 @@ If `gh api` returns 403 or 429: pause and inform user. Do not retry automaticall
 
 - Submit a review verdict without the user explicitly selecting it in the Verdict step.
 - Post the summary other than as the body of a user-selected verdict submission.
+- Name the producing agent, tool, or skill in a posted comment body.
 - Use `--force` or any destructive git/gh command
 - Use em-dashes in generated text
 - Modify any code or files under review (writing to `~/.claude/review-harness/` for DB tracking is allowed)

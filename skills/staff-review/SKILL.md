@@ -514,11 +514,10 @@ JSON
 every contributing source, or the single source for an unmerged finding. Omit
 it only when the finding has no source (inline-analysis `New` findings).
 
-`body` carries the finding text ONLY. Never append a `Sources:` line, a
-`[<agent-name>]` tag, or any other naming of the agent, tool, or skill that
-produced the finding. Source attribution belongs in the `sources` field and in
-the Section 3 `Source` column, both of which stay local. The body is what gets
-posted to GitHub.
+`body` carries the finding text ONLY. Never append a `Sources:` line or an
+`[<agent-name>]` tag. Attribution goes in the `sources` field, which the triage
+app renders as its own row. The body is what reaches GitHub, and it is also
+what the user edits during triage, so keep it free of metadata.
 
 The script lives at `~/.claude/review-harness/db/insert_review.py`, installed
 beside the database at `~/.claude/review-harness/reviews.db`. `author`, `url`, `pr_state`, and `review_decision` come from the pre-flight `gh pr view` fetch; `review_decision` may be empty. Capture
